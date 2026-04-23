@@ -55,12 +55,19 @@ typedef enum {
 
 static omi_control_kind_t control_kind(uint8_t b);
 
+typedef enum {
+    OMI_MODE_STREAM = 0,
+    OMI_MODE_DOT = 1,
+    OMI_MODE_ADDER = 2
+} omi_mode_t;
+
 typedef struct {
     uint8_t synced;
     uint8_t esc_active;
     uint8_t boundary;
     uint8_t ecc_status;
     uint8_t ecc_nibble;
+    omi_mode_t mode;
 } omi_control_plane_t;
 
 typedef struct {
@@ -84,6 +91,12 @@ typedef struct {
 } omi_radix_witness_t;
 
 typedef struct {
+    uint8_t active;
+    uint8_t index;
+    uint8_t bits[9];
+} omi_adder_frame_t;
+
+typedef struct {
     uint64_t tick;
     uint8_t previous_state;
     uint8_t current_state;
@@ -98,6 +111,7 @@ typedef struct {
     uint32_t digest;
     omi_control_plane_t control;
     omi_header8_t header8;
+    omi_adder_frame_t adder;
 } omi_state_t;
 
 static uint8_t rotl8(uint8_t x, unsigned k) {
@@ -193,6 +207,15 @@ static const char *plane_name(omi_plane_t plane) {
         case OMI_PLANE_BRAILLE: return "BRAILLE";
         case OMI_PLANE_AEGEAN: return "AEGEAN";
         case OMI_PLANE_OMICRON: return "OMICRON";
+    }
+    return "UNKNOWN";
+}
+
+static const char *mode_name(omi_mode_t mode) {
+    switch (mode) {
+        case OMI_MODE_STREAM: return "STREAM";
+        case OMI_MODE_DOT: return "DOT";
+        case OMI_MODE_ADDER: return "ADDER";
     }
     return "UNKNOWN";
 }
@@ -357,17 +380,142 @@ static void print_dot(omi_state_t *st, uint8_t b) {
     printf(" dot=STRUCT.NONE");
 }
 
+static uint8_t bit_and(uint8_t a, uint8_t b) {
+    return (uint8_t)((a & 1u) & (b & 1u));
+}
+
+static uint8_t bit_or(uint8_t a, uint8_t b) {
+    return (uint8_t)((a & 1u) | (b & 1u));
+}
+
+static uint8_t bit_xor(uint8_t a, uint8_t b) {
+    return (uint8_t)((a & 1u) ^ (b & 1u));
+}
+
+static uint8_t and3(uint8_t a, uint8_t b, uint8_t c) {
+    return bit_and(bit_and(a, b), c);
+}
+
+static uint8_t and4(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
+    return bit_and(and3(a, b, c), d);
+}
+
+static uint8_t and5(uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e) {
+    return bit_and(and4(a, b, c, d), e);
+}
+
+static uint8_t or3(uint8_t a, uint8_t b, uint8_t c) {
+    return bit_or(bit_or(a, b), c);
+}
+
+static uint8_t or4(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
+    return bit_or(or3(a, b, c), d);
+}
+
+static uint8_t or5(uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e) {
+    return bit_or(or4(a, b, c, d), e);
+}
+
+static uint8_t nibble_value(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
+    return (uint8_t)((b0 & 1u) | ((b1 & 1u) << 1) | ((b2 & 1u) << 2) | ((b3 & 1u) << 3));
+}
+
+static void print_adder_complete(const omi_state_t *st) {
+    uint8_t a0 = st->adder.bits[0];
+    uint8_t b0 = st->adder.bits[1];
+    uint8_t a1 = st->adder.bits[2];
+    uint8_t b1 = st->adder.bits[3];
+    uint8_t a2 = st->adder.bits[4];
+    uint8_t b2 = st->adder.bits[5];
+    uint8_t a3 = st->adder.bits[6];
+    uint8_t b3 = st->adder.bits[7];
+    uint8_t c0 = st->adder.bits[8];
+    uint8_t p0 = bit_xor(a0, b0);
+    uint8_t p1 = bit_xor(a1, b1);
+    uint8_t p2 = bit_xor(a2, b2);
+    uint8_t p3 = bit_xor(a3, b3);
+    uint8_t g0 = bit_and(a0, b0);
+    uint8_t g1 = bit_and(a1, b1);
+    uint8_t g2 = bit_and(a2, b2);
+    uint8_t g3 = bit_and(a3, b3);
+    uint8_t c1 = bit_or(g0, bit_and(p0, c0));
+    uint8_t c2 = or3(g1, bit_and(p1, g0), and3(p1, p0, c0));
+    uint8_t c3 = or4(g2, bit_and(p2, g1), and3(p2, p1, g0), and4(p2, p1, p0, c0));
+    uint8_t c4 = or5(g3, bit_and(p3, g2), and3(p3, p2, g1), and4(p3, p2, p1, g0), and5(p3, p2, p1, p0, c0));
+    uint8_t s0 = bit_xor(p0, c0);
+    uint8_t s1 = bit_xor(p1, c1);
+    uint8_t s2 = bit_xor(p2, c2);
+    uint8_t s3 = bit_xor(p3, c3);
+    uint8_t aval = nibble_value(a0, a1, a2, a3);
+    uint8_t bval = nibble_value(b0, b1, b2, b3);
+    uint8_t sval = nibble_value(s0, s1, s2, s3);
+    uint8_t total = (uint8_t)(sval + (uint8_t)(16u * c4));
+
+    printf(" adder={A=%u%u%u%u(%u) B=%u%u%u%u(%u) C0=%u P=%u%u%u%u G=%u%u%u%u C=%u%u%u%u%u S=%u%u%u%u C4=%u value=%u}",
+           a3, a2, a1, a0, aval,
+           b3, b2, b1, b0, bval,
+           c0,
+           p3, p2, p1, p0,
+           g3, g2, g1, g0,
+           c0, c1, c2, c3, c4,
+           s3, s2, s1, s0,
+           c4,
+           total);
+    printf(" adder-dot=(ADDER4 . ((inputs . ((A0 . %u) (B0 . %u) (A1 . %u) (B1 . %u) (A2 . %u) (B2 . %u) (A3 . %u) (B3 . %u) (C0 . %u)))",
+           a0, b0, a1, b1, a2, b2, a3, b3, c0);
+    printf(" (propagate . ((P0 . (XOR A0 B0 . %u)) (P1 . (XOR A1 B1 . %u)) (P2 . (XOR A2 B2 . %u)) (P3 . (XOR A3 B3 . %u))))",
+           p0, p1, p2, p3);
+    printf(" (generate . ((G0 . (AND A0 B0 . %u)) (G1 . (AND A1 B1 . %u)) (G2 . (AND A2 B2 . %u)) (G3 . (AND A3 B3 . %u))))",
+           g0, g1, g2, g3);
+    printf(" (carry . ((C1 . (OR G0 (AND P0 C0) . %u)) (C2 . (OR G1 (AND P1 G0) (AND P1 P0 C0) . %u)) (C3 . (OR G2 (AND P2 G1) (AND P2 P1 G0) (AND P2 P1 P0 C0) . %u)) (C4 . (OR G3 (AND P3 G2) (AND P3 P2 G1) (AND P3 P2 P1 G0) (AND P3 P2 P1 P0 C0) . %u))))",
+           c1, c2, c3, c4);
+    printf(" (sum . ((S0 . (XOR P0 C0 . %u)) (S1 . (XOR P1 C1 . %u)) (S2 . (XOR P2 C2 . %u)) (S3 . (XOR P3 C3 . %u))))",
+           s0, s1, s2, s3);
+    printf(" (outputs . ((S0 . %u) (S1 . %u) (S2 . %u) (S3 . %u) (C4 . %u)))))",
+           s0, s1, s2, s3, c4);
+}
+
+static void adder_reset(omi_state_t *st) {
+    memset(&st->adder, 0, sizeof(st->adder));
+}
+
+static uint8_t adder_accept_byte(omi_state_t *st, uint8_t b) {
+    if (st->control.mode != OMI_MODE_ADDER) return 0u;
+
+    if (b != (uint8_t)'0' && b != (uint8_t)'1') {
+        printf(" adder-error={index=%u byte=0x%02X reason=non-bit}", st->adder.index, b);
+        return 1u;
+    }
+
+    if (st->adder.index < 9u) {
+        st->adder.bits[st->adder.index] = (uint8_t)(b - (uint8_t)'0');
+        printf(" adder-input={index=%u bit=%u}", st->adder.index, st->adder.bits[st->adder.index]);
+        st->adder.index += 1u;
+    }
+
+    if (st->adder.index == 9u) {
+        print_adder_complete(st);
+        adder_reset(st);
+        st->control.mode = OMI_MODE_STREAM;
+        printf(" mode-transition=ADDER->STREAM");
+    }
+
+    return 1u;
+}
+
 static void process_byte(omi_state_t *st, uint8_t b) {
     uint16_t mask = lexer_mask(b);
     omi_control_kind_t kind = control_kind(b);
     omi_radix_witness_t notation = notation_witness(b);
     omi_ecc_witness_t ew = hamming84_decode(hamming84_encode((uint8_t)(b & 0x0Fu)));
+    uint8_t entered_adder = 0u;
     uint8_t prev;
     uint8_t curr;
     uint8_t winner;
 
     if (kind == OMI_CTL_BOM) {
         memset(&st->control, 0, sizeof(st->control));
+        adder_reset(st);
         st->control.synced = 1u;
     } else if (kind == OMI_CTL_ESC) {
         st->control.esc_active ^= 1u;
@@ -377,6 +525,20 @@ static void process_byte(omi_state_t *st, uint8_t b) {
         ew = hamming84_decode(b);
         st->control.ecc_status = ew.status;
         st->control.ecc_nibble = ew.data;
+    }
+
+    if (kind == OMI_CTL_DATA && st->control.esc_active && b == (uint8_t)'A') {
+        st->control.mode = OMI_MODE_ADDER;
+        st->control.esc_active = 0u;
+        adder_reset(st);
+        st->adder.active = 1u;
+        entered_adder = 1u;
+    } else if (kind == OMI_CTL_DATA && st->control.esc_active && b == (uint8_t)'D') {
+        st->control.mode = OMI_MODE_DOT;
+        st->control.esc_active = 0u;
+    } else if (kind == OMI_CTL_DATA && st->control.esc_active && b == (uint8_t)'S') {
+        st->control.mode = OMI_MODE_STREAM;
+        st->control.esc_active = 0u;
     }
 
     prev = st->current_state;
@@ -395,14 +557,15 @@ static void process_byte(omi_state_t *st, uint8_t b) {
     for (int bit = 7; bit >= 0; --bit) {
         printf("%u", (unsigned)((b >> bit) & 1u));
     }
-    printf(" input=0x%02X mask=0x%04X cp={bom=%u esc=%u boundary=%u ecc=%u:%X}",
+    printf(" input=0x%02X mask=0x%04X cp={bom=%u esc=%u boundary=%u ecc=%u:%X mode=%s}",
            b,
            mask,
            st->control.synced,
            st->control.esc_active,
            st->control.boundary,
            st->control.ecc_status,
-           st->control.ecc_nibble);
+           st->control.ecc_nibble,
+           mode_name(st->control.mode));
     printf(" plane=%s state=0x%02X winner=%u emit=%s",
            plane_name(plane_of_byte(b)),
            curr,
@@ -419,6 +582,11 @@ static void process_byte(omi_state_t *st, uint8_t b) {
            ew.syndrome,
            ew.status);
     print_dot(st, b);
+    if (entered_adder) {
+        printf(" mode-transition=STREAM->ADDER adder-frame={need=9 order=A0,B0,A1,B1,A2,B2,A3,B3,C0}");
+    } else if (kind != OMI_CTL_BOM) {
+        (void)adder_accept_byte(st, b);
+    }
     printf(" digest=0x%08X\n", st->digest);
 }
 
@@ -450,12 +618,21 @@ int main(int argc, char **argv) {
     {
         const uint8_t boot_stream[] = {
             OMI_BOM_BYTE,
+            0xE1u,
             0x1Bu,
-            0x1Cu,
+            'A',
+            '1',
+            '1',
+            '0',
+            '1',
+            '1',
+            '0',
+            '0',
+            '0',
+            '0',
             0x1Du,
             0x1Eu,
             0x1Fu,
-            0xE1u,
             0x28u,
             0x41u,
             0x2Eu,
