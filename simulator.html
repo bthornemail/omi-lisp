@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OMI-Lisp Processor Simulator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Courier New', monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+h1, h2, h3 { color: #00ff88; }
+.container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+.panel { background: #16213e; padding: 15px; border-radius: 8px; border: 1px solid #0f3460; }
+.panel h3 { margin-bottom: 10px; border-bottom: 1px solid #0f3460; padding-bottom: 5px; }
+textarea { width: 100%; height: 200px; background: #0f0f23; color: #0ff; border: 1px solid #0f3460; padding: 10px; font-family: 'Courier New', monospace; font-size: 14px; }
+button { background: #e94560; color: #fff; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; margin: 5px; }
+button:hover { background: #ff6b6b; }
+.highlight { color: #ff6b6b; }
+.gate { fill: none; stroke: #00ff88; stroke-width: 2; }
+.gate-and { fill: #ff6b6b; stroke: #ff6b6b; }
+.gate-or { fill: #00ff88; stroke: #00ff88; }
+.gate-xor { fill: #ffd700; stroke: #ffd700; }
+.wire { stroke: #00ff88; stroke-width: 2; fill: none; }
+.signal-0 { stroke: #666; }
+.signal-1 { stroke: #00ff88; stroke-width: 3; }
+.cons-box { fill: none; stroke: #00ff88; stroke-width: 2; }
+.cons-car { stroke: #ff6b6b; stroke-width: 2; }
+.cons-cdr { stroke: #ffd700; stroke-width: 2; }
+.register { fill: #0f3460; stroke: #e94560; stroke-width: 2; }
+.bit { fill: #333; }
+.bit-0 { fill: #333; }
+.bit-1 { fill: #00ff88; }
+#registers-display, #memory-display, #output-display { background: #0f0f23; padding: 10px; min-height: 100px; max-height: 300px; overflow: auto; }
+#circuit-canvas { background: #0f0f23; border: 1px solid #0f3460; }
+.tabs { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+.tab { background: #0f3460; color: #aaa; padding: 8px 15px; cursor: pointer; border-radius: 4px 4px 0 0; }
+.tab.active { background: #e94560; color: #fff; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.tooltip { font-size: 12px; color: #888; margin-top: 5px; }
+.grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.cell { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #333; border-radius: 2px; cursor: pointer; }
+.cell.bit-0 { background: #444; }
+.cell.bit-1 { background: #00ff88; color: #000; }
+.cell:hover { transform: scale(1.1); }
+.input-pair { display: flex; gap: 10px; align-items: center; }
+select, input[type="number"] { background: #0f3460; color: #fff; border: 1px solid #e94560; padding: 5px; }
+.kmap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+.kmap-cell { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: #1a1a2e; border: 1px solid #0f3460; }
+.kmap-header { background: #0f3460; }
+</style>
+</head>
+<body>
+
+<h1>OMI-Lisp Processor Simulator</h1>
+<p class="tooltip">Practice RISC-V assembly, logic gates, and list structures with dot notation</p>
+
+<div class="container">
+<div class="panel">
+<h3>Editor</h3>
+<div class="tabs">
+<div class="tab active" onclick="showTab('asm')">Assembly</div>
+<div class="tab" onclick="showTab('gates')">Gates</div>
+<div class="tab" onclick="showTab('lists')">Lists</div>
+<div class="tab" onclick="showTab('adder')">Adder</div>
+<div class="tab" onclick="showTab('kmap')">K-Map</div>
+</div>
+
+<div id="asm" class="tab-content active">
+<textarea id="asm-editor" placeholder="# OMI-Lisp Assembly
+# RV64I Syntax
+
+# Simple add
+addi a0, zero, 5    # a0 = 5
+addi a1, zero, 3     # a1 = 3
+add a2, a0, a1       # a2 = a0 + a1 = 8
+
+# Store to memory
+sd a2, 0(t0)        # Memory[t0] = a2
+
+# Branch example
+bne a0, a1, skip
+addi a0, zero, 10
+skip:
+"></textarea>
+<div>
+<button onclick="runASM()">Run</button>
+<button onclick="stepASM()">Step</button>
+<button onclick="resetASM()">Reset</button>
+<button onclick="loadExample()">Load Example</button>
+</div>
+<p class="tooltip">Type assembly and click Run. Step through one instruction at a time.</p>
+</div>
+
+<div id="gates" class="tab-content">
+<canvas id="gate-canvas" width="400" height="300"></canvas>
+<div>
+<button onclick="drawGate('AND')">AND</button>
+<button onclick="drawGate('OR')">OR</button>
+<button onclick="drawGate('XOR')">XOR</button>
+<button onclick="clearGates()">Clear</button>
+</div>
+<p class="tooltip">Click a gate type, then click on canvas to place. Inputs: click left side. Output: right side.</p>
+</div>
+
+<div id="lists" class="tab-content">
+<textarea id="dot-notation" placeholder="(rose violet buttercup)
+(A () B)
+"></textarea>
+<div>
+<button onclick="drawList()">Draw List</button>
+<button onclick="drawDotExample()">Dot Examples</button>
+</div>
+<p class="tooltip">Type dot-notation list (like Lisp) and click Draw to visualize cons cells as box diagrams.</p>
+</div>
+
+<div id="adder" class="tab-content">
+<div class="input-pair">
+<input type="number" id="a-val" value="5" min="0" max="15">
++
+<input type="number" id="b-val" value="7" min="0" max="15">
+<button onclick="calcAdder()">Calculate</button>
+</div>
+<canvas id="adder-canvas" width="600" height="350"></canvas>
+</div>
+
+<div id="kmap" class="tab-content">
+<p>Karnaugh Map for Carry Logic</p>
+<div class="kmap"></div>
+<button onclick="clearKmap()">Clear</button>
+</div>
+</div>
+</div>
+
+<div class="panel">
+<h3>State</h3>
+<div id="registers-display">
+<h4>Registers (x0-x31)</h4>
+<div id="registers"></div>
+</div>
+<div id="output-display">
+<h4>Output</h4>
+<pre id="output"></pre>
+</div>
+</div>
+</div>
+
+<script>
+let pc = 0, registers = new Uint8Array(32);
+let memory = new Uint8Array(256);
+let asmLines = [], running = false;
+
+const instrCodes = {
+  'addi': 0x13, 'add': 0x33, 'sub': 0x40000033,
+  'sd': 0x23, 'ld': 0x03, 'beq': 0x63,
+  'bne': 0x64, 'jal': 0x6f, 'jalr': 0x67
+};
+
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll(`[onclick="showTab('${id}')"]`)[0].classList.add('active');
+}
+
+function parseASM(text) {
+  return text.split('\n').filter(l => l.trim() && !l.startsWith('#')).map(l => {
+    const parts = l.split(/\s+/);
+    return { op: parts[0], args: parts.slice(1).join(', ') };
+  });
+}
+
+function runASM() {
+  asmLines = parseASM(document.getElementById('asm-editor').value);
+  pc = 0;
+  running = true;
+  output.textContent = '';
+  execute();
+}
+
+function execute() {
+  while(pc < asmLines.length) {
+    const line = asmLines[pc];
+    if(!line.op) break;
+    output.textContent += `PC ${pc}: ${line.op} ${line.args}\n`;
+    const result = runInstr(line);
+    if(result === 'break') break;
+    pc++;
+  }
+  updateRegDisplay();
+}
+
+function stepASM() {
+  if(!asmLines.length) { asmLines = parseASM(document.getElementById('asm-editor').value); }
+  if(pc < asmLines.length) {
+    const line = asmLines[pc];
+    output.textContent += `PC ${pc}: ${line.op} ${line.args}\n`;
+    runInstr(line);
+    pc++;
+    updateRegDisplay();
+  }
+}
+
+function runInstr(line) {
+  const args = line.args.split(',').map(a => a.trim());
+  switch(line.op) {
+    case 'addi':
+      const rd = regNum(args[0]), rs = regNum(args[1].replace('zero','0'));
+      const imm = parseInt(args[2]) || 0;
+      registers[rd] = (registers[rs] + imm) & 0xFFFFFFFFn;
+      break;
+    case 'add':
+      registers[regNum(args[0])] = (registers[regNum(args[1])] + registers[regNum(args[2]) | 0) & 0xFFFFFFFFn;
+      break;
+    case 'sd':
+      const addr = parseInt(args[1].split('(')[0]) || 0;
+      const base = regNum(args[1].split('(')[1]?.replace(')','') || 't0');
+      memory[addr + registers[base]] = registers[regNum(args[0])];
+      break;
+    case 'bne':
+      if(registers[regNum(args[0])] !== registers[regNum(args[1])]) {
+        const label = args[2];
+        pc = asmLines.findIndex(l => l.op === label + ':') || pc;
+      }
+      break;
+    case 'beq':
+      if(registers[regNum(args[0])] === registers[regNum(args[1])]) {
+        pc = asmLines.findIndex(l => l.op === args[2] + ':') || pc;
+      }
+      break;
+  }
+  return 'ok';
+}
+
+function regNum(name) {
+  const regs = {zero:0, ra:1, sp:2, gp:3, tp:4, t0:5, t1:6, t2:7, s0:8, s1:9,
+    a0:10, a1:11, a2:12, a3:13, a4:14, a5:15, a6:16, a7:17,
+    s2:18, s3:19, s4:20, s5:21, s6:22, s7:23, s8:24, s9:25, s10:26, s11:27,
+    t3:28, t4:29, t5:30, t6:31};
+  return regs[name] || 0;
+}
+
+function resetASM() {
+  pc = 0;
+  registers = new Uint8Array(32);
+  memory = new Uint8Array(256);
+  output.textContent = 'Reset.\n';
+  updateRegDisplay();
+}
+
+function updateRegDisplay() {
+  const names = ['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1',
+    'a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','t3','t4','t5','t6'];
+  let html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">';
+  for(let i = 0; i < 32; i++) {
+    html += `<span style="background:#0f3460;padding:3px;">x${i}=${names[i]}: ${registers[i]}</span>`;
+  }
+  html += '</div>';
+  document.getElementById('registers').innerHTML = html;
+}
+
+function loadExample() {
+  document.getElementById('asm-editor').value = `# RV64I Example: Add 5 + 3
+addi a0, zero, 5    # a0 = 5 (load immediate)
+addi a1, zero, 3    # a1 = 3 (load immediate)  
+add a2, a0, a1       # a2 = a0 + a1 = 8 (add registers)
+# Result in a2 = 8`;
+}
+
+function drawGate(type) {
+  const canvas = document.getElementById('gate-canvas');
+  const ctx = canvas.getContext('2d');
+  const x = 50, y = 50;
+  ctx.fillStyle = '#0f0f23';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  const gates = {AND:'D', OR:'≥1', XOR:'=1'};
+  const colors = {AND:'#ff6b6b', OR:'#00ff88', XOR:'#ffd700'};
+  
+  // Draw gate
+  ctx.strokeStyle = colors[type];
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  if(type === 'AND') {
+    ctx.rect(x, y, 60, 40);
+    ctx.moveTo(x-30, y); ctx.lineTo(x, y);
+    ctx.moveTo(x-30, y+40); ctx.lineTo(x, y+40);
+  } else if(type === 'OR') {
+    ctx.arc(x+30, y+20, 30, -Math.PI/2, Math.PI/2);
+    ctx.moveTo(x-30, y); ctx.lineTo(x+5, y);
+    ctx.moveTo(x-30, y+40); ctx.lineTo(x+5, y+40);
+  } else if(type === 'XOR') {
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x+30, y+20, 30, -Math.PI/2, Math.PI/2);
+    ctx.moveTo(x-30, y); ctx.lineTo(x+5, y);
+    ctx.moveTo(x-30, y+40); ctx.lineTo(x+5, y+40);
+  }
+  ctx.stroke();
+  
+  // Labels
+  ctx.fillStyle = '#fff';
+  ctx.font = '14px monospace';
+  ctx.fillText(type, x+20, y+25);
+  ctx.fillText(gates[type], x+50, y+25);
+  ctx.fillText('A', x-40, y+25);
+  ctx.fillText('B', x-40, y+45);
+  ctx.fillText('Y', x+70, y+25);
+  
+  // Input/Output circles
+  [x-30,y,x-30,y+40,x+70,y+20].forEach((pos,i) => {
+    ctx.beginPath();
+    ctx.arc(x + (i===2?40:-30), y + (i===2?0:i===1?40:20), 5, 0, Math.PI*2);
+    ctx.fillStyle = '#333';
+    ctx.fill();
+    ctx.stroke();
+  });
+}
+
+function drawList() {
+  const canvas = document.getElementById('gate-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0f0f23';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  const text = document.getElementById('dot-notation').value;
+  const elements = parseDotList(text);
+  
+  let x = 20, y = 60;
+  elements.forEach((el, i) => {
+    // Draw cons cell (two boxes)
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, 50, 30);
+    ctx.strokeRect(x+50, y, 50, 30);
+    
+    // CAR box
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.fillStyle = '#ff6b6b';
+    ctx.fillText(el.car || 'nil', x+15, y+20);
+    
+    // CDR box  
+    ctx.strokeStyle = '#ffd700';
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText(el.cdr || '→', x+65, y+20);
+    
+    // Arrow to next
+    if(i < elements.length - 1) {
+      ctx.beginPath();
+      ctx.moveTo(x+100, y+15);
+      ctx.lineTo(x+120, y+15);
+      ctx.lineTo(x+115, y+10);
+      ctx.moveTo(x+120, y+15);
+      ctx.lineTo(x+115, y+20);
+      ctx.stroke();
+    }
+    
+    x += 130;
+  });
+  // nil at end
+  ctx.fillStyle = '#888';
+  ctx.fillText('nil', x+10, y+20);
+}
+
+function parseDotList(text) {
+  // Very simple Lisp list parser
+  const clean = text.replace(/[()]/g, '').trim();
+  const parts = clean.split(/\s+/);
+  return parts.map((p, i) => ({car: p, cdr: i < parts.length-1 ? '→' : ''})));
+}
+
+function drawDotExample() {
+  document.getElementById('dot-notation').value = 
+`(rose violet buttercup)
+(A B C)
+((X Y) Z)`;
+  drawList();
+}
+
+function calcAdder() {
+  const a = parseInt(document.getElementById('a-val').value) || 0;
+  const b = parseInt(document.getElementById('b-val').value) || 0;
+  const sum = a + b;
+  
+  const canvas = document.getElementById('adder-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0f0f23';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw 4-bit inputs
+  ctx.fillStyle = '#fff';
+  ctx.font = '14px monospace';
+  ctx.fillText(`A = ${a.toString(2).padStart(4,'0')}`, 20, 30);
+  ctx.fillText(`B = ${b.toString(2).padStart(4,'0')}`, 20, 50);
+  
+  // Draw gates for full adder
+  let x = 80, y = 40;
+  for(let i = 0; i < 4; i++) {
+    const abit = (a >> i) & 1;
+    const bbit = (b >> i) & 1;
+    const sumbit = (sum >> i) & 1;
+    
+    // Input dots
+    ctx.beginPath();
+    ctx.arc(x, y-15, 6, 0, Math.PI*2);
+    ctx.arc(x, y+15, 6, 0, Math.PI*2);
+    ctx.fillStyle = abit ? '#00ff88' : '#444';
+    ctx.fill();
+    ctx.fillStyle = bbit ? '#00ff88' : '#444';
+    ctx.fill();
+    
+    ctx.fillStyle = '#fff';
+    ctx.fillText(abit.toString(), x-8, y-12);
+    ctx.fillText(bbit.toString(), x-8, y+18);
+    
+    // XOR gate (sum)
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x+30, y+15, 15, -Math.PI/4, Math.PI/4);
+    ctx.stroke();
+    
+    // Output
+    ctx.beginPath();
+    ctx.arc(x+60, y+15, 8, 0, Math.PI*2);
+    ctx.fillStyle = sumbit ? '#00ff88' : '#444';
+    ctx.fill();
+    ctx.fillText(sumbit.toString(), x+55, y+35);
+    
+    x += 80;
+  }
+  
+  // Carry out
+  ctx.fillStyle = '#ff6b6b';
+  ctx.fillText(`Carry: ${(sum > 15 ? 1 : 0)}`, 320, 80);
+  
+  ctx.fillStyle = '#00ff88';
+  ctx.font = '24px monospace';
+  ctx.fillText(`${a} + ${b} = ${sum}`, 20, 300);
+}
+
+function clearGates() {
+  const canvas = document.getElementById('gate-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0f0f23';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+// Initialize
+updateRegDisplay();
+resetASM();
+</script>
+
+<h2>Logic Gates Reference</h2>
+<table>
+<tr><th>Gate</th><th>Symbol</th><th>Truth Table</th></tr>
+<tr><td>AND</td><td>D</td><td>A B | Y<br>0 0 | 0<br>0 1 | 0<br>1 0 | 0<br>1 1 | 1</td></tr>
+<tr><td>OR</td><td>≥1</td><td>A B | Y<br>0 0 | 0<br>0 1 | 1<br>1 0 | 1<br>1 1 | 1</td></tr>
+<tr><td>XOR</td><td>=1</td><td>A B | Y<br>0 0 | 0<br>0 1 | 1<br>1 0 | 1<br>1 1 | 0</td></tr>
+</table>
+
+<h2>Cons Cell Box Notation (Your Dot Notation)</h2>
+<p>Your lists visualized as pairs of boxes:</p>
+<pre>
+--- ---      --- ---      --- ---
+|   |   |--> |   |   |--> |   |   |--> nil
+ --- ---      --- ---      --- ---
+  |            |            |
+  |            |            |
+   --> rose     --> violet   --> buttercup
+
+Each box = cons cell (CAR | CDR)
+Arrow = reference to next cell or nil
+</pre>
+
+<h2>RISC-V Registers (RV64)</h2>
+<table>
+<tr><th>Num</th><th>Name</th><th>Desc</th></tr>
+<tr><td>x0</td><td>zero</td><td>Always 0</td></tr>
+<tr><td>x1</td><td>ra</td><td>Return address</td></tr>
+<tr><td>x2</td><td>sp</td><td>Stack pointer</td></tr>
+<tr><td>x10-x17</td><td>a0-a7</td><td>Arguments/return</td></tr>
+<tr><td>x5-x7,x28-x31</td><td>t0-t6</td><td>Temporaries</td></tr>
+<tr><td>x8,x9</td><td>s0,s1</td><td>Saved</td></tr>
+<tr><td>x18-x27</td><td>s2-s11</td><td>Saved (callee)</td></tr>
+</table>
+
+<h2>Instruction Formats</h2>
+<pre>
+R-type:  funct7    rs2    rs1    funct3    rd    opcode
+I-type:  imm[11:0] rs1    funct3    rd    opcode  
+S-type:  imm[11:5] rs2    rs1    funct3 imm[4:0] opcode
+B-type: imm[12|10:5] rs2 rs1 funct3 imm[4:1|11] imm[10] opcode
+U-type: imm[31:12]           rd    opcode  
+J-type: imm[20|10:1|11|19:12] rd    opcode  
+</pre>
+
+<footer>
+<p>OMI-Lisp Processor Simulator - ASCII/Box Diagrams for Dot Notation</footer>
+</body>
+</html>

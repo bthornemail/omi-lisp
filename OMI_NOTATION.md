@@ -16,7 +16,8 @@ ladder of binary inversions:
     (CONTROL . SIGNAL)
     (REFERENCES . POINTERS)
     (NON-PRINTING . PRINTING)
-    (ASCII . BRAILLE))
+    (ASCII . UNICODE))
+    (UNICODE . BRAILLE))
    . AEGEAN))
 ```
 
@@ -24,13 +25,38 @@ Read this as:
 
 ```text
 NOT-NULL stream
-  enters NULL/ESC polarity
-  enters CONTROL/SIGNAL polarity
-  enters REFERENCES/POINTERS polarity
-  enters NON-PRINTING/PRINTING polarity
+  enters NULL/ESC chirality
+  enters CONTROL/SIGNAL cardinality
+  enters REFERENCES/POINTERS ordinality
+  enters NON-PRINTING/PRINTING modality
   enters ASCII/BRAILLE surface polarity
   closes upward into AEGEAN header/governance scope
 ```
+These are non-printing control characters, they are runtine dependent
+
+Event(NUL SOH) 
+Event(NUL SOH	STX	ETX) : Event selector bit field (32 bit) set by QEMU.
+
+CONTROL(NUL SOH	STX	ETX)/SIGNAL(EOT ENQ	ACK	BEL)
+ 
+ REFERENCES(NUL	SOH	STX	ETX	EOT	ENQ	ACK	BEL	 BS 	 HT 	 LF 	 VT 	 FF 	 CR 	 SO 	 SI )/POINTERS(	DLE	DC1	DC2	DC3	DC4	NAK	SYN	ETB	CAN	 EM 	SUB	ESC	 FS 	 GS 	 RS 	 US ) 
+
+NON-PRINTING(	
+NUL	SOH	STX	ETX	EOT	ENQ	ACK	BEL	 BS 	 HT 	 LF 	 VT 	 FF 	 CR 	 SO 	 SI 
+DLE	DC1	DC2	DC3	DC4	NAK	SYN	ETB	CAN	 EM 	SUB	ESC	 FS 	 GS 	 RS 	 US 
+ SP 	!	"	#	$	%	&	'	(	)	*	+	,	-	.	/
+0	1	2	3	4	5	6	7	8	9	:	;	<	=	>	?
+)/PRINTING(
+@	A	B	C	D	E	F	G	H	I	J	K	L	M	N	O
+P	Q	R	S	T	U	V	W	X	Y	Z	[	\	]	^	_
+`	a	b	c	d	e	f	g	h	i	j	k	l	m	n	o
+p	q	r	s	t	u	v	w	x	y	z	{	|	}	~	DEL
+)
+
+(ASCII)/(BRAILLE)
+
+( !NULL
+((NULL . ESC) (CONTROL . SIGNAL) . (REFERENCES . POINTERS) . ( NON-PRINTING . PRINTING ) . (ASCII . UNICODE). (UNICODE . BRAILLE))  . AEGEAN)
 
 ## Circular Inversion
 
