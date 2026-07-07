@@ -24,6 +24,7 @@ static OMI_Candidate* arena_alloc(OMI_CandidateArena* arena)
     OMI_Candidate* node = &arena->nodes[arena->used++];
     node->kind = OMI_CANDIDATE_NULL;
     node->symbol = NULL;
+    node->span = (OMI_LispSpan){NULL, 0};
     node->car = NULL;
     node->cdr = NULL;
     node->accepted = 0;
@@ -51,6 +52,7 @@ static OMI_Candidate* convert_node(const OMI_LispNode* n, OMI_CandidateArena* ar
     case OMI_LISP_NODE_SYMBOL:
         node->kind = OMI_CANDIDATE_SYMBOL;
         node->symbol = n->symbol;
+        node->span = n->span;
         break;
     case OMI_LISP_NODE_PAIR: {
         node->kind = OMI_CANDIDATE_PAIR;

@@ -47,6 +47,8 @@ int main(void)
     CHECK(sym != NULL, "symbol conversion succeeds");
     CHECK(sym->kind == OMI_CANDIDATE_SYMBOL, "symbol maps to SYMBOL");
     CHECK(sym->symbol != NULL, "symbol text present");
+    CHECK(sym->span.ptr != NULL && sym->span.len == 1,
+          "symbol atom span preserved in candidate");
     CHECK(sym->car == NULL && sym->cdr == NULL, "symbol has no car/cdr");
 
     /* 3. pair candidate maps to PAIR whose car/cdr are OMI_CANDIDATE_NULL. */

@@ -37,9 +37,15 @@ int main(void)
     CHECK(after.root != NULL, "candidate has a root");
     CHECK(after.root->kind == OMI_LISP_NODE_SYMBOL, "root kind is OMI_LISP_NODE_SYMBOL");
 
-    /* 4. root symbol equals input. */
+    /* 4. root symbol equals input (backward compat null-terminated path). */
     CHECK(after.root->symbol != NULL, "symbol text present");
     CHECK(strcmp(after.root->symbol, "X") == 0, "root symbol equals input string");
+
+    /* 4b. span set correctly on lowered symbol. */
+    CHECK(after.root->span.ptr != NULL && after.root->span.len == 1,
+          "lowered symbol span len == 1");
+    CHECK(omi_lisp_symbol_equals(after.root, "X") != 0,
+          "omi_lisp_symbol_equals matches lowered symbol");
 
     /* 5. empty symbol fails. */
     OMI_LispCandidate empty = omi_lisp_lower_symbol("", 1);
@@ -63,6 +69,39 @@ int main(void)
     OMI_LispCandidate pair = omi_lisp_lower_pair(n, n, 1);
     CHECK(pair.is_candidate == 1 && pair.root->kind == OMI_LISP_NODE_PAIR,
           "pair lowering still passes");
+
+    /* 12. omi_lisp_symbol_span creates symbol node with explicit span. */
+    OMI_LispNode span_node = omi_lisp_symbol_span("hello", 5);
+    CHECK(span_node.kind == OMI_LISP_NODE_SYMBOL, "span_node kind is SYMBOL");
+    CHECK(span_node.span.ptr != NULL && span_node.span.len == 5,
+          "span_node atom span len == 5");
+
+    /* 13. omi_lisp_symbol_equals matches same content. */
+    CHECK(omi_lisp_symbol_equals(&span_node, "hello") != 0,
+          "symbol_equals matches same content");
+
+    /* 14. omi_lisp_symbol_equals rejects different content. */
+    CHECK(omi_lisp_symbol_equals(&span_node, "world") == 0,
+          "symbol_equals rejects different content");
+
+    /* 15. omi_lisp_symbol_equals rejects longer text. */
+    CHECK(omi_lisp_symbol_equals(&span_node, "hello!") == 0,
+          "symbol_equals rejects longer text");
+
+    /* 16. omi_lisp_symbol_equals NULL-safe. */
+    CHECK(omi_lisp_symbol_equals(NULL, "x") == 0,
+          "symbol_equals NULL node returns 0");
+    CHECK(omi_lisp_symbol_equals(&span_node, NULL) == 0,
+          "symbol_equals NULL text returns 0");
+
+    /* 17. omi_lisp_symbol_equals on non-SYMBOL returns 0. */
+    CHECK(omi_lisp_symbol_equals(omi_lisp_null(), "x") == 0,
+          "symbol_equals on NULL node returns 0");
+
+    /* 18. omi_lisp_symbol sets span from symbol string. */
+    OMI_LispNode via_symbol = omi_lisp_symbol("abc");
+    CHECK(via_symbol.span.ptr != NULL && via_symbol.span.len == 3,
+          "omi_lisp_symbol sets span.len == 3");
 
     if (failures == 0) {
         printf("\nAll symbol tests passed.\n");

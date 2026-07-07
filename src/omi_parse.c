@@ -91,6 +91,8 @@ static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
     node->car = NULL;
     node->cdr = NULL;
     node->symbol = start;
+    node->span.ptr = start;
+    node->span.len = (size_t)(s->p - start);
     *out_node = node;
     return 1;
 }

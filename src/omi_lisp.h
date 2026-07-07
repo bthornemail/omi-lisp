@@ -18,6 +18,11 @@
 
 #include <stddef.h>
 
+typedef struct {
+    const char* ptr;
+    size_t len;
+} OMI_LispSpan;
+
 typedef enum {
     OMI_LISP_NODE_NULL,
     OMI_LISP_NODE_PAIR,
@@ -31,6 +36,7 @@ struct OMI_LispNode {
     const OMI_LispNode* car;
     const OMI_LispNode* cdr;
     const char* symbol;
+    OMI_LispSpan span;
 };
 
 typedef struct {
@@ -65,8 +71,20 @@ OMI_LispCandidate omi_lisp_lower_pair(
 );
 
 /* Builds a symbol node from a non-NULL, non-empty string. Pure structural
- * constructor. Symbol identity is the text; OMI-Lisp does not validate it. */
+ * constructor. Symbol identity is the text; OMI-Lisp does not validate it.
+ * The span is set to cover the entire string. */
 OMI_LispNode omi_lisp_symbol(const char* symbol);
+
+/* Builds a symbol node from a pointer and length. The caller must ensure
+ * the memory at ptr remains valid for the node's lifetime. Pure structural
+ * constructor without heap allocation. */
+OMI_LispNode omi_lisp_symbol_span(const char* ptr, size_t len);
+
+/* Compares a symbol node against a C string by span content. Returns
+ * non-zero iff node is OMI_LISP_NODE_SYMBOL, node->span.ptr is non-NULL,
+ * node->span.len equals strlen(text), and contents match. Safe for
+ * parser-produced symbols whose text may not be null-terminated. */
+int omi_lisp_symbol_equals(const OMI_LispNode* node, const char* text);
 
 /* Lowers a symbol declaration into a typed construction candidate.
  * sp_seen must be non-zero. A NULL or empty symbol returns a non-candidate.

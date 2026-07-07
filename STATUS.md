@@ -69,9 +69,32 @@ tests/fixtures/pair.omi      (a . b)        — parsed
 tests/fixtures/symbol.omi    a              — parsed
 ```
 
-## 8. Next Safe Steps
+## 8. Symbol Span Model
 
-1. **symbol text ownership / span model** — formalize parser symbol text as pointer + length instead of bare source pointer
+Symbol text is represented as an atom span (OMI_LispSpan: pointer + length).
+The parser does not require null-terminated symbol substrings.
+The span is declaration-surface text only, not identity authority.
+
+```
+OMI_LispSpan { const char* ptr; size_t len; }
+
+Symbol node:
+    span.ptr -> first byte of symbol token
+    span.len -> atom token length only (not full expression)
+
+(a . b):
+    car symbol: span.len = 1
+    cdr symbol: span.len = 1
+    pair node:  no span set (reserved for future source_span)
+```
+
+Spans are preserved through OMI_Candidate conversion.
+Tests use `omi_lisp_symbol_equals(node, "text")` instead of `strcmp`.
+Backward compat: `omi_lisp_lower_symbol("X", 1)` still sets `symbol` ptr.
+
+## 9. Next Safe Steps
+
+1. ~~**symbol text ownership / span model** — formalize parser symbol text as pointer + length instead of bare source pointer~~ (DONE)
 2. **parser arena ownership** — move parser node lifetime into an explicit arena rather than static pool
 3. **nested pair grammar** — extend parser to support pairs whose car/cdr are themselves pairs
 4. **adapter handoff to omi-canvas** — only after ownership and grammar are stable

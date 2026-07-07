@@ -103,12 +103,17 @@ TEST_PLAN.md
     doc-first verification plan; no executable tests yet
 
 src/
-    omi_lisp.h       minimal node + candidate types (adapter layer)
-    omi_lisp.c       seed + post-SP pair + post-SP symbol lowering stub
-    omi_candidate.h  neutral typed construction candidate handoff shape + arena
+    omi_lisp.h       minimal node + candidate types (adapter layer),
+                     OMI_LispSpan { ptr, len } for atom token ownership
+    omi_lisp.c       seed + post-SP pair + post-SP symbol lowering stub,
+                     omi_lisp_symbol_span() + omi_lisp_symbol_equals()
+    omi_candidate.h  neutral typed construction candidate handoff shape + arena,
+                     carries OMI_LispSpan from source node
     omi_candidate.c  maps OMI-Lisp candidate -> real OMI_Candidate tree in arena
     omi_parse.h      tiny fixture parser API + OMI_ParseResult enum
-    omi_parse.c      parser for NULL / symbol / (a . b) / (NULL . NULL) grammar
+    omi_parse.c      parser for NULL / symbol / (a . b) / (NULL . NULL) grammar,
+                     stores parsed symbols as atom span (ptr + len) instead of
+                     relying on null-terminated substrings
                      (no lists, no quote, no numbers, no comments, no eval,
                       no validation, no receipt, no omi-canvas import)
 

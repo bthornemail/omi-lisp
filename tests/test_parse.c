@@ -56,8 +56,10 @@ int main(void)
     CHECK(r == OMI_PARSE_OK, "\"a\" parses after SP");
     CHECK(cand.is_candidate == 1, "symbol candidate is_candidate");
     CHECK(cand.root->kind == OMI_LISP_NODE_SYMBOL, "symbol candidate root is SYMBOL");
-    CHECK(cand.root->symbol != NULL && cand.root->symbol[0] == 'a',
-          "symbol text is 'a'");
+    CHECK(omi_lisp_symbol_equals(cand.root, "a") != 0,
+          "symbol text is 'a' via symbol_equals");
+    CHECK(cand.root->span.ptr != NULL && cand.root->span.len == 1,
+          "parsed symbol span len == 1");
     CHECK(cand.accepted == 0 && cand.validated == 0 && cand.receipted == 0,
           "symbol candidate never accepted/validated/receipted");
 
@@ -68,10 +70,14 @@ int main(void)
     CHECK(cand.root->kind == OMI_LISP_NODE_PAIR, "pair candidate root is PAIR");
     CHECK(cand.root->car->kind == OMI_LISP_NODE_SYMBOL, "pair car is SYMBOL");
     CHECK(cand.root->cdr->kind == OMI_LISP_NODE_SYMBOL, "pair cdr is SYMBOL");
-    CHECK(cand.root->car->symbol != NULL && cand.root->car->symbol[0] == 'a',
-          "car symbol is 'a'");
-    CHECK(cand.root->cdr->symbol != NULL && cand.root->cdr->symbol[0] == 'b',
-          "cdr symbol is 'b'");
+    CHECK(omi_lisp_symbol_equals(cand.root->car, "a") != 0,
+          "car symbol is 'a' via symbol_equals");
+    CHECK(omi_lisp_symbol_equals(cand.root->cdr, "b") != 0,
+          "cdr symbol is 'b' via symbol_equals");
+    CHECK(cand.root->car->span.ptr != NULL && cand.root->car->span.len == 1,
+          "car atom span len == 1");
+    CHECK(cand.root->cdr->span.ptr != NULL && cand.root->cdr->span.len == 1,
+          "cdr atom span len == 1");
     CHECK(cand.accepted == 0 && cand.validated == 0 && cand.receipted == 0,
           "pair candidate never accepted/validated/receipted");
 

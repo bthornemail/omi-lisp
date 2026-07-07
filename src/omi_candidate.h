@@ -28,6 +28,7 @@ typedef struct OMI_Candidate OMI_Candidate;
 struct OMI_Candidate {
     OMI_CandidateKind kind;
     const char* symbol;
+    OMI_LispSpan span;
     const OMI_Candidate* car;
     const OMI_Candidate* cdr;
     int accepted;

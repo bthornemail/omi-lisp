@@ -90,12 +90,14 @@ int main(void)
         CHECK(cand.root->kind == OMI_LISP_NODE_PAIR, "pair.omi root is PAIR");
         CHECK(cand.root->car->kind == OMI_LISP_NODE_SYMBOL, "pair.omi car is SYMBOL");
         CHECK(cand.root->cdr->kind == OMI_LISP_NODE_SYMBOL, "pair.omi cdr is SYMBOL");
-        CHECK(cand.root->car->symbol != NULL &&
-              cand.root->car->symbol[0] == 'a',
-              "pair.omi car symbol starts with 'a'");
-        CHECK(cand.root->cdr->symbol != NULL &&
-              cand.root->cdr->symbol[0] == 'b',
-              "pair.omi cdr symbol starts with 'b'");
+        CHECK(omi_lisp_symbol_equals(cand.root->car, "a") != 0,
+              "pair.omi car symbol equals 'a'");
+        CHECK(cand.root->car->span.ptr != NULL && cand.root->car->span.len == 1,
+              "pair.omi car atom span len == 1");
+        CHECK(omi_lisp_symbol_equals(cand.root->cdr, "b") != 0,
+              "pair.omi cdr symbol equals 'b'");
+        CHECK(cand.root->cdr->span.ptr != NULL && cand.root->cdr->span.len == 1,
+              "pair.omi cdr atom span len == 1");
         CHECK(cand.accepted == 0, "pair.omi accepted == 0");
         CHECK(cand.validated == 0, "pair.omi validated == 0");
         CHECK(cand.receipted == 0, "pair.omi receipted == 0");
@@ -110,9 +112,10 @@ int main(void)
         CHECK(r == OMI_PARSE_OK, "symbol.omi parses");
         CHECK(cand.is_candidate == 1, "symbol.omi candidate is_candidate");
         CHECK(cand.root->kind == OMI_LISP_NODE_SYMBOL, "symbol.omi root is SYMBOL");
-        CHECK(cand.root->symbol != NULL &&
-              strcmp(cand.root->symbol, "a") == 0,
-              "symbol.omi symbol text is 'a'");
+        CHECK(omi_lisp_symbol_equals(cand.root, "a") != 0,
+              "symbol.omi symbol text is 'a' via symbol_equals");
+        CHECK(cand.root->span.ptr != NULL && cand.root->span.len == 1,
+              "symbol.omi atom span len == 1");
         CHECK(cand.accepted == 0, "symbol.omi accepted == 0");
         CHECK(cand.validated == 0, "symbol.omi validated == 0");
         CHECK(cand.receipted == 0, "symbol.omi receipted == 0");
