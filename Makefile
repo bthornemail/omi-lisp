@@ -18,13 +18,14 @@ TEST_BIN_PARSE := $(BUILD_DIR)/test_parse
 TEST_BIN_FIXTURES := $(BUILD_DIR)/test_fixtures
 TEST_BIN_NESTED := $(BUILD_DIR)/test_nested
 TEST_BIN_ADAPTER := $(BUILD_DIR)/test_adapter_contract
+TEST_BIN_BOUNDARY := $(BUILD_DIR)/test_canvas_boundary
 
 .PHONY: all test clean
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-all: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE) $(TEST_BIN_PARSE) $(TEST_BIN_FIXTURES) $(TEST_BIN_NESTED) $(TEST_BIN_ADAPTER)
+all: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE) $(TEST_BIN_PARSE) $(TEST_BIN_FIXTURES) $(TEST_BIN_NESTED) $(TEST_BIN_ADAPTER) $(TEST_BIN_BOUNDARY)
 
 $(SRC_DIR)/omi_lisp.o: $(SRC_DIR)/omi_lisp.c $(SRC_DIR)/omi_lisp.h
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -62,7 +63,10 @@ $(TEST_BIN_NESTED): $(OBJS) $(TEST_DIR)/test_nested.c $(SRC_DIR)/omi_parse.h | $
 $(TEST_BIN_ADAPTER): $(OBJS) $(TEST_DIR)/test_adapter_contract.c $(SRC_DIR)/omi_adapter_contract.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(OBJS) $(TEST_DIR)/test_adapter_contract.c -o $@
 
-test: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE) $(TEST_BIN_PARSE) $(TEST_BIN_FIXTURES) $(TEST_BIN_NESTED) $(TEST_BIN_ADAPTER)
+$(TEST_BIN_BOUNDARY): $(OBJS) $(TEST_DIR)/test_canvas_boundary.c $(SRC_DIR)/omi_canvas_boundary.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(OBJS) $(TEST_DIR)/test_canvas_boundary.c -o $@
+
+test: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE) $(TEST_BIN_PARSE) $(TEST_BIN_FIXTURES) $(TEST_BIN_NESTED) $(TEST_BIN_ADAPTER) $(TEST_BIN_BOUNDARY)
 	./$(TEST_BIN_SEED)
 	./$(TEST_BIN_PAIR)
 	./$(TEST_BIN_SYMBOL)
@@ -71,6 +75,7 @@ test: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE)
 	./$(TEST_BIN_FIXTURES)
 	./$(TEST_BIN_NESTED)
 	./$(TEST_BIN_ADAPTER)
+	./$(TEST_BIN_BOUNDARY)
 
 clean:
 	rm -rf $(BUILD_DIR) $(OBJS)

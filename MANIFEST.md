@@ -152,6 +152,12 @@ src/
                    maps OMI_Candidate tree -> OMI_AdapterNode tree,
                    preserves kind, atom_span, source_span, tree shape,
                    all authority flags at zero
+    omi_canvas_boundary.h
+                   compile-time boundary stub for future omi-canvas handoff
+                   header-only, no .c implementation
+                   declares OMI_CanvasBoundaryInput, OMI_CanvasBoundaryResult,
+                   omi_canvas_boundary_check_shape()
+                   (no omi-canvas import, no tetragrammatron import)
 
 tests/
     test_seed.c      verifies seed candidate: pair, NULL car/cdr, accepted/validated/receipted = false
@@ -171,6 +177,10 @@ tests/
                      verifies OMI_Candidate -> OMI_AdapterNode handoff:
                      tree shape, symbol atom_span, source_span, authority flags,
                      authoritative check, NULL input safety
+    test_canvas_boundary.c
+                     compile smoke test for omi_canvas_boundary.h header
+                     verifies enum constants, struct init, function pointer,
+                     no link-time dependency on omi-canvas
     fixtures/
         seed.omi     declaration fixture: (NULL . NULL) — parsed by tests
         pair.omi     declaration fixture: (a . b) — parsed by tests

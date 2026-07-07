@@ -83,7 +83,7 @@ Projection is not receipt.
 
 ## 4. Current Tests
 
-All 8 test binaries pass (282+ assertions):
+All 9 test binaries pass (293+ assertions):
 
 | Binary | Assertions | Scope |
 |---|---|---|
@@ -95,6 +95,7 @@ All 8 test binaries pass (282+ assertions):
 | `test_fixtures` | 78 | fixture parsing from disk, conversion |
 | `test_nested` | 50 | nested pairs, atom/source spans, depth bounds |
 | `test_adapter_contract` | 36 | OMI_Candidate → OMI_AdapterNode handoff |
+| `test_canvas_boundary` | 11 | compile-time boundary stub, enum guard |
 
 ## 5. Integration Gate
 

@@ -69,8 +69,11 @@ test_nested     — nested pair grammar: right, left, seed-nested, balanced,
 test_adapter_contract
                 — adapter shape stub: OMI_Candidate -> OMI_AdapterNode handoff,
                   tree shape, spans, authority flags, NULL safety
+test_canvas_boundary
+                — compile-time boundary stub: header-only port shape,
+                  enum guard OMI_CANVAS_BOUNDARY_NOT_AUTHORITY
 
-test suite: all 8 binaries pass, 282+ assertions (see ADAPTER_TEST_MATRIX.md)
+test suite: all 9 binaries pass, 293+ assertions (see ADAPTER_TEST_MATRIX.md)
 ```
 
 ## 7. Fixture Status
@@ -204,3 +207,4 @@ Input text              Node        source_span.len
 6. ~~**adapter shape stub**~~ (DONE — see `src/omi_adapter_contract.{h,c}`)
 7. ~~**adapter test matrix**~~ (DONE — see `ADAPTER_TEST_MATRIX.md`)
 8. **compile-time boundary stub** — header-only shape that downstream can include without runtime dependency. Still no functional omi-canvas import. Still no validation.
+9. **first real integration** — replace boundary stub with linkable code that calls omi-canvas. Only after integration gate is clean.
