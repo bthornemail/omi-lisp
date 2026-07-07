@@ -215,7 +215,102 @@ int main(void)
         free(content);
     }
 
-    /* 6. All remain accepted=0, validated=0, receipted=0 (verified per-fixture above). */
+    /* 6. Nested fixtures parse correctly from disk. */
+    content = read_file("tests/fixtures/nested-right.omi");
+    CHECK(content != NULL, "nested-right.omi read from disk");
+    if (content != NULL) {
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
+        CHECK(r == OMI_PARSE_OK, "nested-right.omi parses");
+        CHECK(cand.root->kind == OMI_LISP_NODE_PAIR,
+              "nested-right.omi root is PAIR");
+        CHECK(cand.root->cdr->kind == OMI_LISP_NODE_PAIR,
+              "nested-right.omi cdr is PAIR");
+        CHECK(omi_lisp_symbol_equals(cand.root->car, "a") != 0,
+              "nested-right.omi car symbol 'a'");
+        CHECK(omi_lisp_symbol_equals(cand.root->cdr->car, "b") != 0,
+              "nested-right.omi inner car symbol 'b'");
+        CHECK(omi_lisp_symbol_equals(cand.root->cdr->cdr, "c") != 0,
+              "nested-right.omi inner cdr symbol 'c'");
+        CHECK(cand.accepted == 0 && cand.validated == 0 && cand.receipted == 0,
+              "nested-right.omi never accepted/validated/receipted");
+        free(content);
+    }
+
+    content = read_file("tests/fixtures/nested-left.omi");
+    CHECK(content != NULL, "nested-left.omi read from disk");
+    if (content != NULL) {
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
+        CHECK(r == OMI_PARSE_OK, "nested-left.omi parses");
+        CHECK(cand.root->kind == OMI_LISP_NODE_PAIR,
+              "nested-left.omi root is PAIR");
+        CHECK(cand.root->car->kind == OMI_LISP_NODE_PAIR,
+              "nested-left.omi car is PAIR");
+        CHECK(omi_lisp_symbol_equals(cand.root->car->car, "a") != 0,
+              "nested-left.omi inner car symbol 'a'");
+        CHECK(omi_lisp_symbol_equals(cand.root->car->cdr, "b") != 0,
+              "nested-left.omi inner cdr symbol 'b'");
+        CHECK(omi_lisp_symbol_equals(cand.root->cdr, "c") != 0,
+              "nested-left.omi cdr symbol 'c'");
+        CHECK(cand.accepted == 0 && cand.validated == 0 && cand.receipted == 0,
+              "nested-left.omi never accepted/validated/receipted");
+        free(content);
+    }
+
+    content = read_file("tests/fixtures/nested-balanced.omi");
+    CHECK(content != NULL, "nested-balanced.omi read from disk");
+    if (content != NULL) {
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
+        CHECK(r == OMI_PARSE_OK, "nested-balanced.omi parses");
+        CHECK(cand.root->kind == OMI_LISP_NODE_PAIR,
+              "nested-balanced.omi root is PAIR");
+        CHECK(cand.root->car->kind == OMI_LISP_NODE_PAIR,
+              "nested-balanced.omi car is PAIR");
+        CHECK(cand.root->cdr->kind == OMI_LISP_NODE_PAIR,
+              "nested-balanced.omi cdr is PAIR");
+        CHECK(omi_lisp_symbol_equals(cand.root->car->car, "a") != 0,
+              "nested-balanced.omi car-car symbol 'a'");
+        CHECK(omi_lisp_symbol_equals(cand.root->car->cdr, "b") != 0,
+              "nested-balanced.omi car-cdr symbol 'b'");
+        CHECK(omi_lisp_symbol_equals(cand.root->cdr->car, "c") != 0,
+              "nested-balanced.omi cdr-car symbol 'c'");
+        CHECK(omi_lisp_symbol_equals(cand.root->cdr->cdr, "d") != 0,
+              "nested-balanced.omi cdr-cdr symbol 'd'");
+        CHECK(cand.accepted == 0 && cand.validated == 0 && cand.receipted == 0,
+              "nested-balanced.omi never accepted/validated/receipted");
+        free(content);
+    }
+
+    /* 7. Nested fixtures convert into OMI_CandidateArena. */
+    content = read_file("tests/fixtures/nested-balanced.omi");
+    if (content != NULL) {
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
+        CHECK(r == OMI_PARSE_OK, "nested-balanced.omi parses for conversion");
+        omi_candidate_arena_init(&arena);
+        OMI_Candidate* cc = omi_candidate_from_lisp_into(&cand, &arena);
+        CHECK(cc != NULL, "nested-balanced.omi converts into arena");
+        CHECK(cc->kind == OMI_CANDIDATE_PAIR, "nested-balanced converted root PAIR");
+        CHECK(cc->car->kind == OMI_CANDIDATE_PAIR,
+              "nested-balanced converted car PAIR (a . b)");
+        CHECK(cc->car->car->kind == OMI_CANDIDATE_SYMBOL,
+              "nested-balanced converted car-car SYMBOL 'a'");
+        CHECK(cc->car->cdr->kind == OMI_CANDIDATE_SYMBOL,
+              "nested-balanced converted car-cdr SYMBOL 'b'");
+        CHECK(cc->cdr->kind == OMI_CANDIDATE_PAIR,
+              "nested-balanced converted cdr PAIR (c . d)");
+        CHECK(cc->cdr->car->kind == OMI_CANDIDATE_SYMBOL,
+              "nested-balanced converted cdr-car SYMBOL 'c'");
+        CHECK(cc->cdr->cdr->kind == OMI_CANDIDATE_SYMBOL,
+              "nested-balanced converted cdr-cdr SYMBOL 'd'");
+        CHECK(cc->accepted == 0 && cc->validated == 0 && cc->receipted == 0,
+              "nested-balanced converted never authoritative");
+        free(content);
+    }
+
+    /* 8. All remain accepted=0, validated=0, receipted=0 (verified per-fixture above). */
 
     if (failures == 0) {
         printf("\nAll fixture tests passed.\n");

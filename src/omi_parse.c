@@ -39,6 +39,7 @@ typedef struct {
     const char* src;
     const char* p;
     int depth;
+    int depth_overflow;
     OMI_ParseArena* arena;
 } OMI_ParseState;
 
@@ -86,6 +87,8 @@ static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
     node->symbol = start;
     node->span.ptr = start;
     node->span.len = (size_t)(s->p - start);
+    node->source_span.ptr = start;
+    node->source_span.len = (size_t)(s->p - start);
     *out_node = node;
     return 1;
 }
@@ -97,6 +100,7 @@ static int parse_atom(OMI_ParseState* s, const OMI_LispNode** out_node);
  * Allocates from the caller-owned arena; pointer valid until arena reuse. */
 static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
 {
+    const char* open = s->p;
     if (*s->p != '(') {
         return 0;
     }
@@ -104,6 +108,7 @@ static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
     skip_ws(s);
 
     if (s->depth >= OMI_PARSE_MAX_DEPTH) {
+        s->depth_overflow = 1;
         return 0;
     }
     s->depth++;
@@ -146,6 +151,8 @@ static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
     pair->cdr = cdr;
     pair->symbol = NULL;
     pair->span = (OMI_LispSpan){NULL, 0};
+    pair->source_span.ptr = open;
+    pair->source_span.len = (size_t)(s->p - open);
     *out_node = pair;
     return 1;
 }
@@ -186,11 +193,13 @@ OMI_ParseResult omi_lisp_parse_candidate_into(
 
     omi_parse_arena_init(arena);
 
-    OMI_ParseState state = { .src = src, .p = src, .depth = 0, .arena = arena };
+    OMI_ParseState state = { .src = src, .p = src, .depth = 0, .depth_overflow = 0, .arena = arena };
     const OMI_LispNode* root = NULL;
 
     if (!parse_atom(&state, &root)) {
-        /* Check if failure was due to arena exhaustion. */
+        if (state.depth_overflow) {
+            return OMI_PARSE_ERR_DEPTH;
+        }
         if (arena->used >= OMI_PARSE_ARENA_MAX) {
             return OMI_PARSE_ERR_ARENA_FULL;
         }

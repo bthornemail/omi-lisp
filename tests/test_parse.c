@@ -54,6 +54,8 @@ int main(void)
     CHECK(cand.root->cdr->kind == OMI_LISP_NODE_NULL, "NULL cdr is NULL node");
     CHECK(cand.accepted == 0 && cand.validated == 0 && cand.receipted == 0,
           "NULL candidate never accepted/validated/receipted");
+    CHECK(cand.root->source_span.ptr == NULL && cand.root->source_span.len == 0,
+          "NULL seed source span is zero (static node)");
 
     /* 4. "a" parses after SP as SYMBOL. */
     omi_parse_arena_init(&pa);
@@ -65,6 +67,8 @@ int main(void)
           "symbol text is 'a' via symbol_equals");
     CHECK(cand.root->span.ptr != NULL && cand.root->span.len == 1,
           "parsed symbol span len == 1");
+    CHECK(cand.root->source_span.ptr != NULL && cand.root->source_span.len == 1,
+          "parsed symbol source span len == 1");
     CHECK(cand.accepted == 0 && cand.validated == 0 && cand.receipted == 0,
           "symbol candidate never accepted/validated/receipted");
 
@@ -84,6 +88,14 @@ int main(void)
           "car atom span len == 1");
     CHECK(cand.root->cdr->span.ptr != NULL && cand.root->cdr->span.len == 1,
           "cdr atom span len == 1");
+    CHECK(cand.root->source_span.ptr != NULL && cand.root->source_span.len == 7,
+          "pair root source span len == 7");
+    CHECK(cand.root->car->source_span.ptr != NULL &&
+          cand.root->car->source_span.len == 1,
+          "pair car source span len == 1 (equals atom span)");
+    CHECK(cand.root->cdr->source_span.ptr != NULL &&
+          cand.root->cdr->source_span.len == 1,
+          "pair cdr source span len == 1");
     CHECK(cand.accepted == 0 && cand.validated == 0 && cand.receipted == 0,
           "pair candidate never accepted/validated/receipted");
 
@@ -97,6 +109,8 @@ int main(void)
     CHECK(cand.root->cdr->kind == OMI_LISP_NODE_NULL, "seed cdr is NULL node");
     CHECK(omi_lisp_candidate_is_seed(&cand),
           "parsed seed matches seed invariant");
+    CHECK(cand.root->source_span.ptr != NULL && cand.root->source_span.len == 13,
+          "seed pair source span len == 13 for \"(NULL . NULL)\"");
 
     /* 7. trailing input fails. */
     omi_parse_arena_init(&pa);

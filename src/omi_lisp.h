@@ -23,6 +23,11 @@ typedef struct {
     size_t len;
 } OMI_LispSpan;
 
+typedef struct {
+    const char* ptr;
+    size_t len;
+} OMI_SourceSpan;
+
 typedef enum {
     OMI_LISP_NODE_NULL,
     OMI_LISP_NODE_PAIR,
@@ -37,6 +42,7 @@ struct OMI_LispNode {
     const OMI_LispNode* cdr;
     const char* symbol;
     OMI_LispSpan span;
+    OMI_SourceSpan source_span;
 };
 
 typedef struct {

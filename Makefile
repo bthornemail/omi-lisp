@@ -16,13 +16,14 @@ TEST_BIN_SYMBOL := $(BUILD_DIR)/test_symbol
 TEST_BIN_CANDIDATE := $(BUILD_DIR)/test_candidate
 TEST_BIN_PARSE := $(BUILD_DIR)/test_parse
 TEST_BIN_FIXTURES := $(BUILD_DIR)/test_fixtures
+TEST_BIN_NESTED := $(BUILD_DIR)/test_nested
 
 .PHONY: all test clean
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-all: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE) $(TEST_BIN_PARSE) $(TEST_BIN_FIXTURES)
+all: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE) $(TEST_BIN_PARSE) $(TEST_BIN_FIXTURES) $(TEST_BIN_NESTED)
 
 $(SRC_DIR)/omi_lisp.o: $(SRC_DIR)/omi_lisp.c $(SRC_DIR)/omi_lisp.h
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -51,13 +52,17 @@ $(TEST_BIN_PARSE): $(OBJS) $(TEST_DIR)/test_parse.c $(SRC_DIR)/omi_parse.h | $(B
 $(TEST_BIN_FIXTURES): $(OBJS) $(TEST_DIR)/test_fixtures.c $(SRC_DIR)/omi_parse.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(OBJS) $(TEST_DIR)/test_fixtures.c -o $@
 
-test: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE) $(TEST_BIN_PARSE) $(TEST_BIN_FIXTURES)
+$(TEST_BIN_NESTED): $(OBJS) $(TEST_DIR)/test_nested.c $(SRC_DIR)/omi_parse.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(OBJS) $(TEST_DIR)/test_nested.c -o $@
+
+test: $(TEST_BIN_SEED) $(TEST_BIN_PAIR) $(TEST_BIN_SYMBOL) $(TEST_BIN_CANDIDATE) $(TEST_BIN_PARSE) $(TEST_BIN_FIXTURES) $(TEST_BIN_NESTED)
 	./$(TEST_BIN_SEED)
 	./$(TEST_BIN_PAIR)
 	./$(TEST_BIN_SYMBOL)
 	./$(TEST_BIN_CANDIDATE)
 	./$(TEST_BIN_PARSE)
 	./$(TEST_BIN_FIXTURES)
+	./$(TEST_BIN_NESTED)
 
 clean:
 	rm -rf $(BUILD_DIR) $(OBJS)

@@ -29,6 +29,7 @@ struct OMI_Candidate {
     OMI_CandidateKind kind;
     const char* symbol;
     OMI_LispSpan span;
+    OMI_SourceSpan source_span;
     const OMI_Candidate* car;
     const OMI_Candidate* cdr;
     int accepted;

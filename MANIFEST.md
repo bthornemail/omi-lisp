@@ -104,19 +104,31 @@ TEST_PLAN.md
 
 src/
     omi_lisp.h       minimal node + candidate types (adapter layer),
-                     OMI_LispSpan { ptr, len } for atom token ownership
+                     OMI_LispSpan { ptr, len } for atom token ownership,
+                     OMI_SourceSpan { ptr, len } for full parse span
     omi_lisp.c       seed + post-SP pair + post-SP symbol lowering stub,
+                     zero-initializes source_span in all constructors,
                      omi_lisp_symbol_span() + omi_lisp_symbol_equals()
     omi_candidate.h  neutral typed construction candidate handoff shape + arena,
-                     carries OMI_LispSpan from source node
-    omi_candidate.c  maps OMI-Lisp candidate -> real OMI_Candidate tree in arena
+                     carries OMI_LispSpan from source node,
+                     carries OMI_SourceSpan for parse-range tracking
+    omi_candidate.c  maps OMI-Lisp candidate -> real OMI_Candidate tree in arena,
+                     zero-initializes source_span in arena_alloc(),
+                     copies source_span in convert_node() for all node kinds
     omi_parse.h      tiny fixture parser API + OMI_ParseResult enum,
-                     OMI_ParseArena (caller-owned node storage)
+                     OMI_ParseArena (caller-owned node storage),
+                     depth overflow returns OMI_PARSE_ERR_DEPTH
     omi_parse.c      parser for NULL / symbol / (a . b) / (NULL . NULL) grammar,
+                     plus nested pairs: (a . (b . c)) / ((a . b) . c) / etc.
                      stores parsed symbols as atom span (ptr + len) instead of
                      relying on null-terminated substrings,
                      allocates all parsed nodes from caller-owned OMI_ParseArena
-                     (no static pool, no hidden global state)
+                     (no static pool, no hidden global state),
+                     sets source_span on parsed nodes:
+                       symbol: source_span = atom span
+                       pair:   source_span covers '(' through ')'
+                       static: source_span = { NULL, 0 }
+                     depth bounded at OMI_PARSE_MAX_DEPTH (16)
                      (no lists, no quote, no numbers, no comments, no eval,
                       no validation, no receipt, no omi-canvas import)
 
@@ -126,17 +138,25 @@ tests/
     test_symbol.c    verifies SP gate + non-empty rule for symbol declarations
     test_candidate.c verifies handoff mapping: NULL/SYMBOL/PAIR -> typed candidate, never authoritative
     test_parse.c     verifies parser: NULL input, pre-SP gate, NULL/symbol/pair parse, trailing,
-                     malformed, accepted/validated/receipted = 0, arena conversion
-    test_fixtures.c  verifies parser reads seed.omi / pair.omi / symbol.omi from disk,
+                     malformed, accepted/validated/receipted = 0, arena conversion,
+                     source-span verification on seed, symbol, and pair nodes
+    test_fixtures.c  verifies parser reads all .omi fixtures (including nested) from disk,
                      parses correctly, converts to arena, remains non-authoritative
+    test_nested.c    verifies nested pair grammar: right/left/seed-nested/balanced,
+                     atom span preservation, candidate conversion,
+                     source-span verification from parse through conversion,
+                     depth overflow (OMI_PARSE_ERR_DEPTH), malformed nested forms
     fixtures/
         seed.omi     declaration fixture: (NULL . NULL) — parsed by tests
         pair.omi     declaration fixture: (a . b) — parsed by tests
         symbol.omi   declaration fixture: a — parsed by tests
+        nested-right.omi     declaration fixture: (a . (b . c)) — parsed by tests
+        nested-left.omi      declaration fixture: ((a . b) . c) — parsed by tests
+        nested-balanced.omi  declaration fixture: ((a . b) . (c . d)) — parsed by tests
 
 Makefile
     builds test binaries into build/ via `make`
-    runs test_seed, test_pair, test_symbol, test_candidate, test_parse, test_fixtures via `make test`
+    runs test_seed, test_pair, test_symbol, test_candidate, test_parse, test_fixtures, test_nested via `make test`
     (build/ and *.o are git-ignored, not committed authority)
 
 .gitignore
@@ -174,7 +194,7 @@ validated = 0
 receipted = 0
 ```
 
-Implementation is a tiny fixture parser only: NULL, symbol, (a . b).
+Implementation is a tiny fixture parser: NULL, symbol, (a . b), nested pairs.
 No lists, no quote, no numbers, no comments, no evaluation, no validation
 engine, no receipt authority, no omi-canvas import. `omi-protocol`
 is untouched.
