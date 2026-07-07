@@ -1,0 +1,7 @@
+# OMI Layer: build hygiene
+# Build artifacts only. No source, no archive, no protocol.
+test_seed
+*.o
+build/
+dist/
+.cache/

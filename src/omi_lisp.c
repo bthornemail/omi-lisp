@@ -64,3 +64,83 @@ int omi_lisp_candidate_is_seed(const OMI_LispCandidate* c)
     }
     return car->kind == OMI_LISP_NODE_NULL && cdr->kind == OMI_LISP_NODE_NULL;
 }
+
+OMI_LispCandidate omi_lisp_lower_pair(
+    const OMI_LispNode* car,
+    const OMI_LispNode* cdr,
+    int sp_seen
+)
+{
+    OMI_LispCandidate c;
+    c.root = NULL;
+    c.is_candidate = 0;
+    c.accepted = 0;
+    c.validated = 0;
+    c.receipted = 0;
+
+    /* Before SP no readable pair candidate may exist. */
+    if (sp_seen == 0) {
+        return c;
+    }
+
+    /* After SP the pair becomes a candidate. Still not accepted/validated/receipted. */
+    static OMI_LispNode pair_node;
+    pair_node.kind = OMI_LISP_NODE_PAIR;
+    pair_node.car = car;
+    pair_node.cdr = cdr;
+    pair_node.symbol = NULL;
+
+    c.root = &pair_node;
+    c.is_candidate = 1;
+    c.accepted = 0;
+    c.validated = 0;
+    c.receipted = 0;
+    return c;
+}
+
+OMI_LispNode omi_lisp_symbol(const char* symbol)
+{
+    OMI_LispNode node;
+    node.kind = OMI_LISP_NODE_SYMBOL;
+    node.car = NULL;
+    node.cdr = NULL;
+    node.symbol = symbol;
+    return node;
+}
+
+OMI_LispCandidate omi_lisp_lower_symbol(
+    const char* symbol,
+    int sp_seen
+)
+{
+    OMI_LispCandidate c;
+    c.root = NULL;
+    c.is_candidate = 0;
+    c.accepted = 0;
+    c.validated = 0;
+    c.receipted = 0;
+
+    /* Before SP no readable symbol candidate may exist. */
+    if (sp_seen == 0) {
+        return c;
+    }
+
+    /* NULL or empty symbol is not a valid candidate. */
+    if (symbol == NULL || symbol[0] == '\0') {
+        return c;
+    }
+
+    /* After SP the symbol becomes a candidate. Still not accepted/validated/receipted. */
+    static OMI_LispNode symbol_node;
+    symbol_node.kind = OMI_LISP_NODE_SYMBOL;
+    symbol_node.car = NULL;
+    symbol_node.cdr = NULL;
+    symbol_node.symbol = symbol;
+
+    c.root = &symbol_node;
+    c.is_candidate = 1;
+    c.accepted = 0;
+    c.validated = 0;
+    c.receipted = 0;
+    return c;
+}

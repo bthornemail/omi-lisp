@@ -102,16 +102,30 @@ TEST_PLAN.md
     doc-first verification plan; no executable tests yet
 
 src/
-    omi_lisp.h   minimal node + candidate types (adapter layer)
-    omi_lisp.c   seed lowering stub: (NULL . NULL) → candidate
-    (no parser, no evaluation, no validation, no receipt)
+    omi_lisp.h       minimal node + candidate types (adapter layer)
+    omi_lisp.c       seed + post-SP pair + post-SP symbol lowering stub
+    omi_candidate.h  neutral typed construction candidate handoff shape + arena
+    omi_candidate.c  maps OMI-Lisp candidate -> real OMI_Candidate tree in arena
+    (no parser, no evaluation, no validation, no receipt; no omi-canvas import)
 
 tests/
-    test_seed.c  verifies seed candidate: pair, NULL car/cdr, accepted/validated/receipted = false
+    test_seed.c      verifies seed candidate: pair, NULL car/cdr, accepted/validated/receipted = false
+    test_pair.c      verifies SP gate: pair only becomes candidate after SP
+    test_symbol.c    verifies SP gate + non-empty rule for symbol declarations
+    test_candidate.c verifies handoff mapping: NULL/SYMBOL/PAIR -> typed candidate, never authoritative
+    fixtures/
+        seed.omi     documentation fixture: (NULL . NULL)
+        pair.omi     documentation fixture: (a . b)
+        symbol.omi   documentation fixture: a
+        (fixtures are NOT parsed yet)
 
 Makefile
-    builds and runs tests/test_seed.c via `make test`
-    (test_seed binary is a build artifact, not committed authority)
+    builds test binaries into build/ via `make`
+    runs test_seed, test_pair, test_symbol, test_candidate via `make test`
+    (build/ and *.o are git-ignored, not committed authority)
+
+.gitignore
+    ignores test_seed, *.o, build/, dist/, .cache/
 
 tests/
     placeholder for fixtures/ golden/ negative/ (future)
@@ -120,16 +134,35 @@ tests/
 First implementation doctrine:
 
 ```text
-OMI-Lisp can form the seed candidate (NULL . NULL)
+OMI-Lisp surface atom
+    ↓
+OMI-Lisp candidate
+    ↓
+typed construction candidate (omi_candidate, real arena tree)
+    ↓
+downstream validation later (omi-canvas / omi-tetragrammatron)
+
+Surface atoms representable as candidates:
+    NULL    (seed: NULL . NULL)
+    SYMBOL  (post-SP, non-empty text)
+    PAIR    (post-SP, car/cdr candidates)
 while still refusing acceptance, validation, and receipt.
 
-accepted  = false
-validated = false
-receipted = false
+Before SP: no readable candidate
+After SP:  declaration may become a candidate
+After validation: only downstream authority may accept state
+
+accepted  = 0
+validated = 0
+receipted = 0
 ```
 
 Implementation is stub-only. No parser, no full grammar, no evaluation,
-no validation engine, no receipt authority. `omi-protocol` is untouched.
+no validation engine, no receipt authority, no omi-canvas import. `omi-protocol`
+is untouched.
+
+The three irreducible OMI-Lisp surface atoms are now representable and hand
+off into a neutral typed construction candidate: NULL, SYMBOL, PAIR.
 
 Doctrine encoded in the scaffold:
 

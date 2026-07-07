@@ -298,10 +298,18 @@ find . -maxdepth 1 -mindepth 1 \
   ! -name 'REBUILD.md' \
   ! -name 'MANIFEST.md' \
   ! -name 'AGENTS.md' \
+  ! -name 'SPEC.md' \
+  ! -name 'LOWERING.md' \
+  ! -name 'TEST_PLAN.md' \
+  ! -name 'Makefile' \
+  ! -name '.gitignore' \
+  ! -name 'src' \
+  ! -name 'tests' \
+  ! -name 'build' \
   ! -name '_archive'
 ```
 
-That command should return nothing unless the agent intentionally added a new approved root file.
+That command should return nothing unless the agent intentionally added a new approved root file. `build/` is an ignored build-output directory and is explicitly allowed by this guard. Confirm it is ignored with `git check-ignore build`.
 
 Check forbidden identity drift:
 

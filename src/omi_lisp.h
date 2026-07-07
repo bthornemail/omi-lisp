@@ -52,6 +52,31 @@ OMI_LispNode omi_lisp_pair(const OMI_LispNode* car, const OMI_LispNode* cdr);
  * because OMI-Lisp does not accept state. */
 OMI_LispCandidate omi_lisp_lower_seed(void);
 
+/* Lowers an explicit pair declaration into a typed construction candidate.
+ * sp_seen must be non-zero: a pair declaration is only readable after the SP
+ * boundary is reached. If sp_seen == 0, a non-candidate is returned
+ * (is_candidate = 0) to prove the SP gate. The candidate is always marked
+ * accepted = false, validated = false, receipted = false because OMI-Lisp
+ * does not accept state. */
+OMI_LispCandidate omi_lisp_lower_pair(
+    const OMI_LispNode* car,
+    const OMI_LispNode* cdr,
+    int sp_seen
+);
+
+/* Builds a symbol node from a non-NULL, non-empty string. Pure structural
+ * constructor. Symbol identity is the text; OMI-Lisp does not validate it. */
+OMI_LispNode omi_lisp_symbol(const char* symbol);
+
+/* Lowers a symbol declaration into a typed construction candidate.
+ * sp_seen must be non-zero. A NULL or empty symbol returns a non-candidate.
+ * The candidate is always marked accepted = false, validated = false,
+ * receipted = false because OMI-Lisp does not accept state. */
+OMI_LispCandidate omi_lisp_lower_symbol(
+    const char* symbol,
+    int sp_seen
+);
+
 /* Returns non-zero iff the candidate root is exactly the seed (NULL . NULL). */
 int omi_lisp_candidate_is_seed(const OMI_LispCandidate* c);
 
