@@ -181,6 +181,11 @@ tests/
                      compile smoke test for omi_canvas_boundary.h header
                      verifies enum constants, struct init, function pointer,
                      no link-time dependency on omi-canvas
+    test_authority_negative.c
+                     proves no layer permits accepted/validated/receipted
+                     to become authority; even manual flag mutation on
+                     OMI_Candidate and OMI_AdapterNode does not slip past
+                     is_authoritative stubs (hardcoded to 0)
     fixtures/
         seed.omi     declaration fixture: (NULL . NULL) — parsed by tests
         pair.omi     declaration fixture: (a . b) — parsed by tests

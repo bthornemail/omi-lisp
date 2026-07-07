@@ -72,8 +72,12 @@ test_adapter_contract
 test_canvas_boundary
                 — compile-time boundary stub: header-only port shape,
                   enum guard OMI_CANVAS_BOUNDARY_NOT_AUTHORITY
+test_authority_negative
+                — negative authority test: manual flag mutation at every
+                  layer (candidate, adapter) cannot accidentally confer
+                  authority; is_authoritative stubs hardcoded to 0
 
-test suite: all 9 binaries pass, 293+ assertions (see ADAPTER_TEST_MATRIX.md)
+test suite: all 10 binaries pass, 320+ assertions (see ADAPTER_TEST_MATRIX.md)
 ```
 
 ## 7. Fixture Status
