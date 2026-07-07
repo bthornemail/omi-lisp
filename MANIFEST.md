@@ -102,11 +102,34 @@ TEST_PLAN.md
     doc-first verification plan; no executable tests yet
 
 src/
-    placeholder for future parser / lowering stub (empty)
+    omi_lisp.h   minimal node + candidate types (adapter layer)
+    omi_lisp.c   seed lowering stub: (NULL . NULL) → candidate
+    (no parser, no evaluation, no validation, no receipt)
 
 tests/
-    placeholder for fixtures/ golden/ negative/ (empty)
+    test_seed.c  verifies seed candidate: pair, NULL car/cdr, accepted/validated/receipted = false
+
+Makefile
+    builds and runs tests/test_seed.c via `make test`
+    (test_seed binary is a build artifact, not committed authority)
+
+tests/
+    placeholder for fixtures/ golden/ negative/ (future)
 ```
+
+First implementation doctrine:
+
+```text
+OMI-Lisp can form the seed candidate (NULL . NULL)
+while still refusing acceptance, validation, and receipt.
+
+accepted  = false
+validated = false
+receipted = false
+```
+
+Implementation is stub-only. No parser, no full grammar, no evaluation,
+no validation engine, no receipt authority. `omi-protocol` is untouched.
 
 Doctrine encoded in the scaffold:
 
