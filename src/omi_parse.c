@@ -8,6 +8,10 @@
  * Parsing does not validate.
  * Parsing does not accept.
  * Parsing does not receipt.
+ *
+ * Uses an internal static node pool for the parsed tree. The tree lives
+ * until the next call, so callers must convert via omi_candidate_from_lisp_into
+ * before reusing the parser. For a fixture parser this is acceptable.
  */
 
 #include "omi_parse.h"
@@ -17,6 +21,27 @@
 
 /* Maximum recursion depth for nested pairs (trivial for current grammar). */
 #define OMI_PARSE_MAX_DEPTH 16
+
+/* Internal node pool: parsed nodes live here across sub-calls within one
+ * omi_lisp_parse_candidate invocation. Static so pointers remain valid
+ * across the call; the pool is reset at the start of each parse. */
+#define OMI_PARSE_POOL_SIZE 64
+
+static OMI_LispNode omi_parse_pool[OMI_PARSE_POOL_SIZE];
+static int omi_parse_pool_used;
+
+static void pool_init(void)
+{
+    omi_parse_pool_used = 0;
+}
+
+static OMI_LispNode* pool_alloc(void)
+{
+    if (omi_parse_pool_used >= OMI_PARSE_POOL_SIZE) {
+        return NULL;
+    }
+    return &omi_parse_pool[omi_parse_pool_used++];
+}
 
 typedef struct {
     const char* src;
@@ -47,7 +72,7 @@ static int match_keyword(OMI_ParseState* s, const char* kw)
 }
 
 /* Parse a symbol (identifier). Returns 1 on success, 0 on failure.
- * out_node is set to the symbol node if successful. */
+ * Allocates from the internal pool; pointer valid until next pool_init. */
 static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
 {
     const char* start = s->p;
@@ -57,17 +82,24 @@ static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
     while (*s->p && (isalnum((unsigned char)*s->p) || *s->p == '_' || *s->p == '-')) {
         s->p++;
     }
-    /* Use the source substring directly as symbol text.
-     * Note: this relies on source lifetime outliving the node.
-     * For tests this is fine (string literals). */
-    *out_node = omi_lisp_symbol(start);
+
+    OMI_LispNode* node = pool_alloc();
+    if (node == NULL) {
+        return 0;
+    }
+    node->kind = OMI_LISP_NODE_SYMBOL;
+    node->car = NULL;
+    node->cdr = NULL;
+    node->symbol = start;
+    *out_node = node;
     return 1;
 }
 
 /* Forward declaration. */
 static int parse_atom(OMI_ParseState* s, const OMI_LispNode** out_node);
 
-/* Parse a pair: (a . b) */
+/* Parse a pair: (a . b).
+ * Allocates from the internal pool; pointer valid until next pool_init. */
 static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
 {
     if (*s->p != '(') {
@@ -110,7 +142,15 @@ static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
     s->p++; /* consume ')' */
     s->depth--;
 
-    *out_node = omi_lisp_pair(car, cdr);
+    OMI_LispNode* pair = pool_alloc();
+    if (pair == NULL) {
+        return 0;
+    }
+    pair->kind = OMI_LISP_NODE_PAIR;
+    pair->car = car;
+    pair->cdr = cdr;
+    pair->symbol = NULL;
+    *out_node = pair;
     return 1;
 }
 
@@ -147,6 +187,8 @@ OMI_ParseResult omi_lisp_parse_candidate(
         return OMI_PARSE_ERR_UNEXPECTED;
     }
 
+    pool_init();
+
     OMI_ParseState state = { .src = src, .p = src, .depth = 0 };
     const OMI_LispNode* root = NULL;
 
@@ -159,13 +201,20 @@ OMI_ParseResult omi_lisp_parse_candidate(
         return OMI_PARSE_ERR_TRAILING;
     }
 
-    /* Build candidate from parsed root. */
-    if (root->kind == OMI_LISP_NODE_PAIR) {
-        *out = omi_lisp_lower_pair(root->car, root->cdr, 1);
-    } else if (root->kind == OMI_LISP_NODE_SYMBOL) {
-        *out = omi_lisp_lower_symbol(root->symbol, 1);
-    } else { /* NULL */
+    /* Build candidate from parsed root.
+     * For the seed (standalone NULL), use omi_lisp_lower_seed which produces
+     * the canonical (NULL . NULL) pair. For everything else, the parsed nodes
+     * live in the static pool and are referenced directly. */
+    out->accepted = 0;
+    out->validated = 0;
+    out->receipted = 0;
+
+    if (root->kind == OMI_LISP_NODE_NULL) {
+        /* Standalone "NULL" becomes the seed (NULL . NULL). */
         *out = omi_lisp_lower_seed();
+    } else {
+        out->is_candidate = 1;
+        out->root = root;
     }
 
     return OMI_PARSE_OK;

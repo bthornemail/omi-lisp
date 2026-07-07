@@ -106,26 +106,30 @@ src/
     omi_lisp.c       seed + post-SP pair + post-SP symbol lowering stub
     omi_candidate.h  neutral typed construction candidate handoff shape + arena
     omi_candidate.c  maps OMI-Lisp candidate -> real OMI_Candidate tree in arena
-    (no parser, no evaluation, no validation, no receipt; no omi-canvas import)
+    omi_parse.h      tiny fixture parser API + OMI_ParseResult enum
+    omi_parse.c      parser for NULL / symbol / (a . b) / (NULL . NULL) grammar
+                     (no lists, no quote, no numbers, no comments, no eval,
+                      no validation, no receipt, no omi-canvas import)
 
 tests/
     test_seed.c      verifies seed candidate: pair, NULL car/cdr, accepted/validated/receipted = false
     test_pair.c      verifies SP gate: pair only becomes candidate after SP
     test_symbol.c    verifies SP gate + non-empty rule for symbol declarations
     test_candidate.c verifies handoff mapping: NULL/SYMBOL/PAIR -> typed candidate, never authoritative
+    test_parse.c     verifies parser: NULL input, pre-SP gate, NULL/symbol/pair parse, trailing,
+                     malformed, accepted/validated/receipted = 0, arena conversion
     fixtures/
         seed.omi     documentation fixture: (NULL . NULL)
         pair.omi     documentation fixture: (a . b)
         symbol.omi   documentation fixture: a
-        (fixtures are NOT parsed yet)
 
 Makefile
     builds test binaries into build/ via `make`
-    runs test_seed, test_pair, test_symbol, test_candidate via `make test`
+    runs test_seed, test_pair, test_symbol, test_candidate, test_parse via `make test`
     (build/ and *.o are git-ignored, not committed authority)
 
 .gitignore
-    ignores test_seed, *.o, build/, dist/, .cache/
+    ignores test_seed, test_parse, *.o, build/, dist/, .cache/
 
 tests/
     placeholder for fixtures/ golden/ negative/ (future)
@@ -134,7 +138,9 @@ tests/
 First implementation doctrine:
 
 ```text
-OMI-Lisp surface atom
+OMI-Lisp text
+    ↓
+omi_parse_candidate (tiny fixture parser)
     ↓
 OMI-Lisp candidate
     ↓
@@ -157,12 +163,15 @@ validated = 0
 receipted = 0
 ```
 
-Implementation is stub-only. No parser, no full grammar, no evaluation,
-no validation engine, no receipt authority, no omi-canvas import. `omi-protocol`
+Implementation is a tiny fixture parser only: NULL, symbol, (a . b).
+No lists, no quote, no numbers, no comments, no evaluation, no validation
+engine, no receipt authority, no omi-canvas import. `omi-protocol`
 is untouched.
 
-The three irreducible OMI-Lisp surface atoms are now representable and hand
-off into a neutral typed construction candidate: NULL, SYMBOL, PAIR.
+The three irreducible OMI-Lisp surface atoms are now representable, hand
+off into a neutral typed construction candidate: NULL, SYMBOL, PAIR. The
+parser reads text and produces candidates only — it does not evaluate,
+validate, accept, or receipt.
 
 Doctrine encoded in the scaffold:
 
