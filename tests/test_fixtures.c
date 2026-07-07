@@ -5,6 +5,8 @@
  *
  * Fixtures are declaration fixtures only — parsed, never validated or receipted.
  * No new grammar, no evaluation, no validation, no receipt, no authority.
+ *
+ * Uses caller-owned OMI_ParseArena for all parses.
  */
 
 #include <stdio.h>
@@ -61,13 +63,15 @@ int main(void)
     OMI_LispCandidate cand;
     OMI_ParseResult r;
     OMI_CandidateArena arena;
+    OMI_ParseArena pa;
     char* content;
 
     /* 1. seed.omi: "(NULL . NULL)" → PAIR(NULL, NULL). */
     content = read_file("tests/fixtures/seed.omi");
     CHECK(content != NULL, "seed.omi read from disk");
     if (content != NULL) {
-        r = omi_lisp_parse_candidate(content, 1, &cand);
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
         CHECK(r == OMI_PARSE_OK, "seed.omi parses");
         CHECK(cand.is_candidate == 1, "seed.omi candidate is_candidate");
         CHECK(cand.root->kind == OMI_LISP_NODE_PAIR, "seed.omi root is PAIR");
@@ -84,7 +88,8 @@ int main(void)
     content = read_file("tests/fixtures/pair.omi");
     CHECK(content != NULL, "pair.omi read from disk");
     if (content != NULL) {
-        r = omi_lisp_parse_candidate(content, 1, &cand);
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
         CHECK(r == OMI_PARSE_OK, "pair.omi parses");
         CHECK(cand.is_candidate == 1, "pair.omi candidate is_candidate");
         CHECK(cand.root->kind == OMI_LISP_NODE_PAIR, "pair.omi root is PAIR");
@@ -108,7 +113,8 @@ int main(void)
     content = read_file("tests/fixtures/symbol.omi");
     CHECK(content != NULL, "symbol.omi read from disk");
     if (content != NULL) {
-        r = omi_lisp_parse_candidate(content, 1, &cand);
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
         CHECK(r == OMI_PARSE_OK, "symbol.omi parses");
         CHECK(cand.is_candidate == 1, "symbol.omi candidate is_candidate");
         CHECK(cand.root->kind == OMI_LISP_NODE_SYMBOL, "symbol.omi root is SYMBOL");
@@ -122,10 +128,45 @@ int main(void)
         free(content);
     }
 
-    /* 4. All parsed candidates convert into OMI_CandidateArena. */
+    /* 4. Separate arenas for seed.omi and pair.omi preserve both results. */
+    {
+        char* seed_src = read_file("tests/fixtures/seed.omi");
+        char* pair_src = read_file("tests/fixtures/pair.omi");
+        CHECK(seed_src != NULL, "seed.omi re-read for concurrent arena test");
+        CHECK(pair_src != NULL, "pair.omi re-read for concurrent arena test");
+
+        if (seed_src != NULL && pair_src != NULL) {
+            OMI_ParseArena seed_pa, pair_pa;
+            OMI_LispCandidate seed_cand, pair_cand;
+
+            omi_parse_arena_init(&seed_pa);
+            r = omi_lisp_parse_candidate_into(seed_src, 1, &seed_pa, &seed_cand);
+            CHECK(r == OMI_PARSE_OK, "seed.omi parses into its own arena");
+
+            omi_parse_arena_init(&pair_pa);
+            r = omi_lisp_parse_candidate_into(pair_src, 1, &pair_pa, &pair_cand);
+            CHECK(r == OMI_PARSE_OK, "pair.omi parses into its own arena");
+
+            /* Verify both results independently. */
+            CHECK(omi_lisp_candidate_is_seed(&seed_cand),
+                  "seed.omi still matches seed invariant after concurrent parse");
+            CHECK(pair_cand.root->kind == OMI_LISP_NODE_PAIR,
+                  "pair.omi root is still PAIR after concurrent parse");
+            CHECK(omi_lisp_symbol_equals(pair_cand.root->car, "a") != 0,
+                  "pair.omi car still 'a' after concurrent parse");
+            CHECK(omi_lisp_symbol_equals(pair_cand.root->cdr, "b") != 0,
+                  "pair.omi cdr still 'b' after concurrent parse");
+        }
+
+        free(seed_src);
+        free(pair_src);
+    }
+
+    /* 5. All parsed candidates convert into OMI_CandidateArena. */
     content = read_file("tests/fixtures/pair.omi");
     if (content != NULL) {
-        r = omi_lisp_parse_candidate(content, 1, &cand);
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
         CHECK(r == OMI_PARSE_OK, "pair.omi parses for conversion test");
         omi_candidate_arena_init(&arena);
         OMI_Candidate* cc = omi_candidate_from_lisp_into(&cand, &arena);
@@ -143,7 +184,8 @@ int main(void)
     /* seed.omi — also converts. */
     content = read_file("tests/fixtures/seed.omi");
     if (content != NULL) {
-        r = omi_lisp_parse_candidate(content, 1, &cand);
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
         CHECK(r == OMI_PARSE_OK, "seed.omi parses for conversion test");
         omi_candidate_arena_init(&arena);
         OMI_Candidate* cc = omi_candidate_from_lisp_into(&cand, &arena);
@@ -161,7 +203,8 @@ int main(void)
     /* symbol.omi — also converts. */
     content = read_file("tests/fixtures/symbol.omi");
     if (content != NULL) {
-        r = omi_lisp_parse_candidate(content, 1, &cand);
+        omi_parse_arena_init(&pa);
+        r = omi_lisp_parse_candidate_into(content, 1, &pa, &cand);
         CHECK(r == OMI_PARSE_OK, "symbol.omi parses for conversion test");
         omi_candidate_arena_init(&arena);
         OMI_Candidate* cc = omi_candidate_from_lisp_into(&cand, &arena);
@@ -172,7 +215,7 @@ int main(void)
         free(content);
     }
 
-    /* 5. All remain accepted=0, validated=0, receipted=0 (verified per-fixture above). */
+    /* 6. All remain accepted=0, validated=0, receipted=0 (verified per-fixture above). */
 
     if (failures == 0) {
         printf("\nAll fixture tests passed.\n");

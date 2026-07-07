@@ -110,10 +110,13 @@ src/
     omi_candidate.h  neutral typed construction candidate handoff shape + arena,
                      carries OMI_LispSpan from source node
     omi_candidate.c  maps OMI-Lisp candidate -> real OMI_Candidate tree in arena
-    omi_parse.h      tiny fixture parser API + OMI_ParseResult enum
+    omi_parse.h      tiny fixture parser API + OMI_ParseResult enum,
+                     OMI_ParseArena (caller-owned node storage)
     omi_parse.c      parser for NULL / symbol / (a . b) / (NULL . NULL) grammar,
                      stores parsed symbols as atom span (ptr + len) instead of
-                     relying on null-terminated substrings
+                     relying on null-terminated substrings,
+                     allocates all parsed nodes from caller-owned OMI_ParseArena
+                     (no static pool, no hidden global state)
                      (no lists, no quote, no numbers, no comments, no eval,
                       no validation, no receipt, no omi-canvas import)
 

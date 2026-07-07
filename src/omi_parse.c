@@ -9,9 +9,9 @@
  * Parsing does not accept.
  * Parsing does not receipt.
  *
- * Uses an internal static node pool for the parsed tree. The tree lives
- * until the next call, so callers must convert via omi_candidate_from_lisp_into
- * before reusing the parser. For a fixture parser this is acceptable.
+ * Uses a caller-owned OMI_ParseArena for all parsed nodes. No global
+ * static pool. The arena is reset at the start of each parse call, so
+ * separate calls with separate arenas produce independent parse trees.
  */
 
 #include "omi_parse.h"
@@ -22,31 +22,24 @@
 /* Maximum recursion depth for nested pairs (trivial for current grammar). */
 #define OMI_PARSE_MAX_DEPTH 16
 
-/* Internal node pool: parsed nodes live here across sub-calls within one
- * omi_lisp_parse_candidate invocation. Static so pointers remain valid
- * across the call; the pool is reset at the start of each parse. */
-#define OMI_PARSE_POOL_SIZE 64
-
-static OMI_LispNode omi_parse_pool[OMI_PARSE_POOL_SIZE];
-static int omi_parse_pool_used;
-
-static void pool_init(void)
+void omi_parse_arena_init(OMI_ParseArena* arena)
 {
-    omi_parse_pool_used = 0;
+    arena->used = 0;
 }
 
-static OMI_LispNode* pool_alloc(void)
+static OMI_LispNode* pool_alloc(OMI_ParseArena* arena)
 {
-    if (omi_parse_pool_used >= OMI_PARSE_POOL_SIZE) {
+    if (arena->used >= OMI_PARSE_ARENA_MAX) {
         return NULL;
     }
-    return &omi_parse_pool[omi_parse_pool_used++];
+    return &arena->nodes[arena->used++];
 }
 
 typedef struct {
     const char* src;
     const char* p;
     int depth;
+    OMI_ParseArena* arena;
 } OMI_ParseState;
 
 /* Skip whitespace. */
@@ -72,7 +65,7 @@ static int match_keyword(OMI_ParseState* s, const char* kw)
 }
 
 /* Parse a symbol (identifier). Returns 1 on success, 0 on failure.
- * Allocates from the internal pool; pointer valid until next pool_init. */
+ * Allocates from the caller-owned arena; pointer valid until arena reuse. */
 static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
 {
     const char* start = s->p;
@@ -83,7 +76,7 @@ static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
         s->p++;
     }
 
-    OMI_LispNode* node = pool_alloc();
+    OMI_LispNode* node = pool_alloc(s->arena);
     if (node == NULL) {
         return 0;
     }
@@ -101,7 +94,7 @@ static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
 static int parse_atom(OMI_ParseState* s, const OMI_LispNode** out_node);
 
 /* Parse a pair: (a . b).
- * Allocates from the internal pool; pointer valid until next pool_init. */
+ * Allocates from the caller-owned arena; pointer valid until arena reuse. */
 static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
 {
     if (*s->p != '(') {
@@ -144,7 +137,7 @@ static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
     s->p++; /* consume ')' */
     s->depth--;
 
-    OMI_LispNode* pair = pool_alloc();
+    OMI_LispNode* pair = pool_alloc(s->arena);
     if (pair == NULL) {
         return 0;
     }
@@ -152,6 +145,7 @@ static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
     pair->car = car;
     pair->cdr = cdr;
     pair->symbol = NULL;
+    pair->span = (OMI_LispSpan){NULL, 0};
     *out_node = pair;
     return 1;
 }
@@ -173,9 +167,10 @@ static int parse_atom(OMI_ParseState* s, const OMI_LispNode** out_node)
     return parse_symbol(s, out_node);
 }
 
-OMI_ParseResult omi_lisp_parse_candidate(
+OMI_ParseResult omi_lisp_parse_candidate_into(
     const char* src,
     int sp_seen,
+    OMI_ParseArena* arena,
     OMI_LispCandidate* out
 )
 {
@@ -185,16 +180,20 @@ OMI_ParseResult omi_lisp_parse_candidate(
     if (sp_seen == 0) {
         return OMI_PARSE_ERR_PRE_SP;
     }
-    if (out == NULL) {
+    if (out == NULL || arena == NULL) {
         return OMI_PARSE_ERR_UNEXPECTED;
     }
 
-    pool_init();
+    omi_parse_arena_init(arena);
 
-    OMI_ParseState state = { .src = src, .p = src, .depth = 0 };
+    OMI_ParseState state = { .src = src, .p = src, .depth = 0, .arena = arena };
     const OMI_LispNode* root = NULL;
 
     if (!parse_atom(&state, &root)) {
+        /* Check if failure was due to arena exhaustion. */
+        if (arena->used >= OMI_PARSE_ARENA_MAX) {
+            return OMI_PARSE_ERR_ARENA_FULL;
+        }
         return OMI_PARSE_ERR_UNEXPECTED;
     }
     skip_ws(&state);
@@ -206,7 +205,7 @@ OMI_ParseResult omi_lisp_parse_candidate(
     /* Build candidate from parsed root.
      * For the seed (standalone NULL), use omi_lisp_lower_seed which produces
      * the canonical (NULL . NULL) pair. For everything else, the parsed nodes
-     * live in the static pool and are referenced directly. */
+     * live in the caller-owned arena and are referenced directly. */
     out->accepted = 0;
     out->validated = 0;
     out->receipted = 0;
@@ -220,4 +219,16 @@ OMI_ParseResult omi_lisp_parse_candidate(
     }
 
     return OMI_PARSE_OK;
+}
+
+/* Static arena for the convenience wrapper. */
+static OMI_ParseArena OMI_PARSE_STATIC_ARENA;
+
+OMI_ParseResult omi_lisp_parse_candidate(
+    const char* src,
+    int sp_seen,
+    OMI_LispCandidate* out
+)
+{
+    return omi_lisp_parse_candidate_into(src, sp_seen, &OMI_PARSE_STATIC_ARENA, out);
 }
