@@ -7,11 +7,12 @@ The active root is intentionally small:
 
 ```text
 REBUILD.md
+STATUS.md
 MANIFEST.md
 _archive/
 ```
 
-`REBUILD.md` is the active rebuild doctrine. `MANIFEST.md` records the repository boundary and rebuild entry points. `_archive/` contains historical source material only.
+`REBUILD.md` is the active rebuild doctrine. `STATUS.md` records the current stable milestone. `MANIFEST.md` records the repository boundary and rebuild entry points. `_archive/` contains historical source material only.
 
 Do not restore legacy files to the root.
 
@@ -118,14 +119,16 @@ tests/
     test_candidate.c verifies handoff mapping: NULL/SYMBOL/PAIR -> typed candidate, never authoritative
     test_parse.c     verifies parser: NULL input, pre-SP gate, NULL/symbol/pair parse, trailing,
                      malformed, accepted/validated/receipted = 0, arena conversion
+    test_fixtures.c  verifies parser reads seed.omi / pair.omi / symbol.omi from disk,
+                     parses correctly, converts to arena, remains non-authoritative
     fixtures/
-        seed.omi     documentation fixture: (NULL . NULL)
-        pair.omi     documentation fixture: (a . b)
-        symbol.omi   documentation fixture: a
+        seed.omi     declaration fixture: (NULL . NULL) — parsed by tests
+        pair.omi     declaration fixture: (a . b) — parsed by tests
+        symbol.omi   declaration fixture: a — parsed by tests
 
 Makefile
     builds test binaries into build/ via `make`
-    runs test_seed, test_pair, test_symbol, test_candidate, test_parse via `make test`
+    runs test_seed, test_pair, test_symbol, test_candidate, test_parse, test_fixtures via `make test`
     (build/ and *.o are git-ignored, not committed authority)
 
 .gitignore

@@ -296,6 +296,7 @@ Guard against accidental restore:
 find . -maxdepth 1 -mindepth 1 \
   ! -name '.git' \
   ! -name 'REBUILD.md' \
+  ! -name 'STATUS.md' \
   ! -name 'MANIFEST.md' \
   ! -name 'AGENTS.md' \
   ! -name 'SPEC.md' \
