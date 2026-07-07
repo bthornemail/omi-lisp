@@ -139,6 +139,14 @@ src/
                      depth bounded at OMI_PARSE_MAX_DEPTH (16)
                      (no lists, no quote, no numbers, no comments, no eval,
                       no validation, no receipt, no omi-canvas import)
+    omi_adapter_contract.h
+                   adapter shape stub: OMI_AdapterNode, OMI_AdapterArena,
+                   omi_adapter_from_candidate(), omi_adapter_is_authoritative()
+                   (no omi-canvas import, no tetragrammatron import)
+    omi_adapter_contract.c
+                   maps OMI_Candidate tree -> OMI_AdapterNode tree,
+                   preserves kind, atom_span, source_span, tree shape,
+                   all authority flags at zero
 
 tests/
     test_seed.c      verifies seed candidate: pair, NULL car/cdr, accepted/validated/receipted = false
@@ -154,6 +162,10 @@ tests/
                      atom span preservation, candidate conversion,
                      source-span verification from parse through conversion,
                      depth overflow (OMI_PARSE_ERR_DEPTH), malformed nested forms
+    test_adapter_contract.c
+                     verifies OMI_Candidate -> OMI_AdapterNode handoff:
+                     tree shape, symbol atom_span, source_span, authority flags,
+                     authoritative check, NULL input safety
     fixtures/
         seed.omi     declaration fixture: (NULL . NULL) — parsed by tests
         pair.omi     declaration fixture: (a . b) — parsed by tests
