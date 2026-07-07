@@ -85,6 +85,46 @@ future DOM / GPIO / LoRa / barcode projections
 
 Declaration surfaces propose. Typed construction normalizes. Validation determines. Attestation witnesses. Projection displays.
 
+## OMI-Lisp Rebuild Scaffold
+
+Doc-first declaration surface scaffold, added at the omi-lisp repo root.
+This repository is already the OMI-Lisp rebuild root, so the scaffold lives
+here directly rather than under a consumer adapter path.
+
+```text
+SPEC.md
+    OMI-Lisp declaration surface specification (adapter layer, non-authoritative)
+
+LOWERING.md
+    lowering contract: OMI-Lisp → typed construction candidate (downstream)
+
+TEST_PLAN.md
+    doc-first verification plan; no executable tests yet
+
+src/
+    placeholder for future parser / lowering stub (empty)
+
+tests/
+    placeholder for fixtures/ golden/ negative/ (empty)
+```
+
+Doctrine encoded in the scaffold:
+
+```text
+OMI-Lisp is not authority.
+OMI-Lisp does not accept state.
+OMI-Lisp does not validate state.
+OMI-Lisp does not create receipts.
+Dot notation is earned after SP.
+The seed is (NULL . NULL).
+Pair declarations are candidate relations only.
+Lowering target is typed construction candidate, not accepted state.
+Validation and receipt happen downstream.
+```
+
+This pass is doc-first only. No parser, lexer, or lowering executable is
+implemented. No code is restored from `_archive/`. `omi-protocol` is untouched.
+
 ## Next Rebuild Entry Points
 
 Begin rebuild work from these boundaries:
