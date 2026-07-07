@@ -104,6 +104,11 @@ ADAPTER_BOUNDARY.md
     defines what downstream may and may not assume
     (adapter layer, non-authoritative)
 
+ADAPTER_TEST_MATRIX.md
+    shape preservation matrix and integration gate
+    documents proof surface before any real omi-canvas dependency
+    (adapter layer, non-authoritative)
+
 LOWERING.md
     lowering contract: OMI-Lisp → typed construction candidate (downstream)
 
