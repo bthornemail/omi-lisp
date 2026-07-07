@@ -300,6 +300,7 @@ find . -maxdepth 1 -mindepth 1 \
   ! -name 'MANIFEST.md' \
   ! -name 'AGENTS.md' \
   ! -name 'SPEC.md' \
+  ! -name 'ADAPTER_BOUNDARY.md' \
   ! -name 'LOWERING.md' \
   ! -name 'TEST_PLAN.md' \
   ! -name 'Makefile' \

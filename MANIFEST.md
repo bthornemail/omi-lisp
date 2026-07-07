@@ -88,6 +88,9 @@ Declaration surfaces propose. Typed construction normalizes. Validation determin
 
 ## OMI-Lisp Rebuild Scaffold
 
+ADAPTER_BOUNDARY.md
+    handoff contract boundary definition
+
 Doc-first declaration surface scaffold, added at the omi-lisp repo root.
 This repository is already the OMI-Lisp rebuild root, so the scaffold lives
 here directly rather than under a consumer adapter path.
@@ -95,6 +98,11 @@ here directly rather than under a consumer adapter path.
 ```text
 SPEC.md
     OMI-Lisp declaration surface specification (adapter layer, non-authoritative)
+
+ADAPTER_BOUNDARY.md
+    handoff contract from OMI-Lisp parser output to downstream adapters
+    defines what downstream may and may not assume
+    (adapter layer, non-authoritative)
 
 LOWERING.md
     lowering contract: OMI-Lisp → typed construction candidate (downstream)
