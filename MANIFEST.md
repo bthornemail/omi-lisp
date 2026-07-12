@@ -106,22 +106,24 @@ src/
     omi_lisp.c       seed + post-SP pair + post-SP symbol lowering stub
     omi_candidate.h  neutral typed construction candidate handoff shape + arena
     omi_candidate.c  maps OMI-Lisp candidate -> real OMI_Candidate tree in arena
-    (no parser, no evaluation, no validation, no receipt; no omi-canvas import)
+    omi_parse.h      tiny fixture parser API + error codes
+    omi_parse.c      parses NULL / symbol / (a . b) / (NULL . NULL) only
+    (no evaluation, no validation, no receipt; no omi-canvas import)
 
 tests/
     test_seed.c      verifies seed candidate: pair, NULL car/cdr, accepted/validated/receipted = false
     test_pair.c      verifies SP gate: pair only becomes candidate after SP
     test_symbol.c    verifies SP gate + non-empty rule for symbol declarations
     test_candidate.c verifies handoff mapping: NULL/SYMBOL/PAIR -> typed candidate, never authoritative
+    test_parse.c     verifies tiny parser: NULL, symbol, pair, seed, trailing/malformed error, arena handoff
     fixtures/
-        seed.omi     documentation fixture: (NULL . NULL)
-        pair.omi     documentation fixture: (a . b)
-        symbol.omi   documentation fixture: a
-        (fixtures are NOT parsed yet)
+        seed.omi     documentation fixture: (NULL . NULL) — now parseable
+        pair.omi     documentation fixture: (a . b) — now parseable
+        symbol.omi   documentation fixture: a — now parseable
 
 Makefile
     builds test binaries into build/ via `make`
-    runs test_seed, test_pair, test_symbol, test_candidate via `make test`
+    runs test_seed, test_pair, test_symbol, test_candidate, test_parse via `make test`
     (build/ and *.o are git-ignored, not committed authority)
 
 .gitignore
@@ -157,12 +159,12 @@ validated = 0
 receipted = 0
 ```
 
-Implementation is stub-only. No parser, no full grammar, no evaluation,
-no validation engine, no receipt authority, no omi-canvas import. `omi-protocol`
-is untouched.
+Implementation is stub-only. No lists, no quote, no numbers, no comments.
+No evaluation, no validation engine, no receipt authority, no omi-canvas import.
+`omi-protocol` is untouched.
 
-The three irreducible OMI-Lisp surface atoms are now representable and hand
-off into a neutral typed construction candidate: NULL, SYMBOL, PAIR.
+The three irreducible OMI-Lisp surface atoms are now parseable and hand off
+into a real typed construction candidate: NULL, SYMBOL, PAIR.
 
 Doctrine encoded in the scaffold:
 
@@ -215,3 +217,12 @@ Do not rebuild from _archive/omi-lisp-v1 as authority.
 Do not restore legacy files to root.
 Do not edit /home/main/omi/omi-protocol as part of this rebuild root.
 ```
+
+## Canonical OMI Notation
+
+The current canonical notation surface is `omi---imo?O_o` (sign-first,
+8-tuple role signs, dotted-pair nestable, nibble-lowered, XOR-witnessed).
+
+Agents must not infer canonical notation from older nearby files. See
+`AGENTS.md` for the full notation version lock, byte bands, and authority
+order.

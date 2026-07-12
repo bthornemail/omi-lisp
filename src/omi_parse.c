@@ -15,8 +15,22 @@
 #include <ctype.h>
 #include <string.h>
 
-/* Maximum recursion depth for nested pairs (trivial for current grammar). */
+/* Maximum recursion depth for nested pairs. */
 #define OMI_PARSE_MAX_DEPTH 16
+
+/* Small static arena for parse nodes, avoiding shared-static aliasing. */
+#define OMI_PARSE_NODE_MAX 32
+
+static OMI_LispNode OMI_PARSE_NODES[OMI_PARSE_NODE_MAX];
+static int OMI_PARSE_NODE_USED;
+
+static OMI_LispNode* parse_alloc(void)
+{
+    if (OMI_PARSE_NODE_USED >= OMI_PARSE_NODE_MAX) {
+        return NULL;
+    }
+    return &OMI_PARSE_NODES[OMI_PARSE_NODE_USED++];
+}
 
 typedef struct {
     const char* src;
@@ -47,7 +61,7 @@ static int match_keyword(OMI_ParseState* s, const char* kw)
 }
 
 /* Parse a symbol (identifier). Returns 1 on success, 0 on failure.
- * out_node is set to the symbol node if successful. */
+ * out_node is set to an arena-allocated symbol node if successful. */
 static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
 {
     const char* start = s->p;
@@ -57,10 +71,12 @@ static int parse_symbol(OMI_ParseState* s, const OMI_LispNode** out_node)
     while (*s->p && (isalnum((unsigned char)*s->p) || *s->p == '_' || *s->p == '-')) {
         s->p++;
     }
-    /* Use the source substring directly as symbol text.
-     * Note: this relies on source lifetime outliving the node.
-     * For tests this is fine (string literals). */
-    *out_node = omi_lisp_symbol(start);
+    OMI_LispNode* node = parse_alloc();
+    if (node == NULL) {
+        return 0;
+    }
+    *node = omi_lisp_symbol(start);
+    *out_node = node;
     return 1;
 }
 
@@ -110,7 +126,12 @@ static int parse_pair(OMI_ParseState* s, const OMI_LispNode** out_node)
     s->p++; /* consume ')' */
     s->depth--;
 
-    *out_node = omi_lisp_pair(car, cdr);
+    OMI_LispNode* pair_node = parse_alloc();
+    if (pair_node == NULL) {
+        return 0;
+    }
+    *pair_node = omi_lisp_pair(car, cdr);
+    *out_node = pair_node;
     return 1;
 }
 
@@ -148,6 +169,7 @@ OMI_ParseResult omi_lisp_parse_candidate(
     }
 
     OMI_ParseState state = { .src = src, .p = src, .depth = 0 };
+    OMI_PARSE_NODE_USED = 0;
     const OMI_LispNode* root = NULL;
 
     if (!parse_atom(&state, &root)) {
