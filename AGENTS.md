@@ -259,15 +259,17 @@ Canonical distinction:
 ?O_o belongs to OMI-native notation.
 ```
 
-### 8-tuple
+### 8-tuple (pedagogical scaffold)
 
-The relation carries an 8-tuple of role signs:
+The 8-tuple is a pedagogical automata-style scaffold for explaining
+how OMI notation may be read as a bounded relation frame. It is not
+canonical structure, not an authority layer, and not a proof object.
 
 ```text
 Q Σ L R δ s t r
 ```
 
-Role meanings:
+Role meanings (pedagogical, not canonical identity):
 
 ```text
 Q   state space / identity context
@@ -280,40 +282,35 @@ t   accept / success / terminal output
 r   reject / failure / alternative
 ```
 
-Sign establishes role. Tuple establishes compatibility. Nesting establishes
-place. Address binds place value. Lowering supplies bits. XOR computes the
-relation witness.
-
-Address cascade mapping (S0-S7):
+Address cascade (explanatory overlay, not canonical identity):
 
 ```text
-S0 = Q
-S1 = Σ
-S2 = L
-S3 = R
-S4 = δ
-S5 = s
-S6 = t
-S7 = r
+S0 may be explained as Q
+S1 may be explained as Σ
+S2 may be explained as L
+S3 may be explained as R
+S4 may be explained as δ
+S5 may be explained as s
+S6 may be explained as t
+S7 may be explained as r
 ```
 
-### Register compression
+### Register compression (pedagogical pairings)
 
-The second half of the OMI frame compresses the 8-tuple into four paired
-32-bit fields:
+The 8-tuple may be paired into four pedagogical relation carriers:
 
 ```text
-CAR     = Q & Σ    relation role, not required integer width
-CDR     = L & R    relation role, not required integer width
-PAYLOAD = δ & s    relation role, not required integer width
-MASK    = t & r    relation role, not required integer width
+CAR      ≈ Q / Σ    pedagogical pairing, not required integer width
+CDR      ≈ L / R    pedagogical pairing, not required integer width
+PAYLOAD  ≈ δ / s    pedagogical pairing, not required integer width
+MASK     ≈ t / r    pedagogical pairing, not required integer width
 ```
 
 Full OMI cell:
 
 ```text
-8 × 16-bit address/ruler fields  (S0-S7 = Q Σ L R δ s t r)
-+ 4 × 32-bit paired relation fields  (CAR, CDR, PAYLOAD, MASK)
+8 × 16-bit address/ruler fields  (S0-S7, pedagogically named by Q Σ L R δ s t r)
++ 4 × 32-bit paired relation fields  (CAR, CDR, PAYLOAD, MASK, pedagogical pairings)
 ```
 
 Dotted-pair nesting:
@@ -403,6 +400,7 @@ omi---imo
 - Do not promote `#/` from carrier compatibility into OMI-native syntax.
 - Do not treat the 8-tuple as `8 × 16-bit` numeric coordinates unless
   explicitly discussing a later lowering.
+- Do not treat the 8-tuple as canonical structure, authority, or proof object.
 - Do not treat the four dotted pairs as `4 × 32-bit` integer widths.
 - Do not treat geometry drawings as authority.
 - Do not let projection, route, notation, or gauge become authority.
