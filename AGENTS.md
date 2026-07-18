@@ -239,6 +239,193 @@ After validation:
     state may be accepted by validation plus receipt only
 ```
 
+## Canonical OMI Notation Version
+
+The current canonical notation surface is:
+
+```text
+omi---imo?O_o
+```
+
+- `omi---imo` is the folded relation sign (carrier).
+- `?O_o` is the readable witness surface (notation).
+- Both share an OMI relation type.
+- Their shared type does not imply identical spelling or identical local interpretation.
+
+Canonical distinction:
+
+```text
+#/ belongs to carrier compatibility syntax.
+?O_o belongs to OMI-native notation.
+```
+
+### 8-tuple (pedagogical scaffold)
+
+The 8-tuple is a pedagogical automata-style scaffold for explaining
+how OMI notation may be read as a bounded relation frame. It is not
+canonical structure, not an authority layer, and not a proof object.
+
+```text
+Q Σ L R δ s t r
+```
+
+Role meanings (pedagogical, not canonical identity):
+
+```text
+Q   state space / identity context
+Σ   alphabet / allowed symbols
+L   left / source / beginning
+R   right / target / ending
+δ   transition / transformation
+s   start value
+t   accept / success / terminal output
+r   reject / failure / alternative
+```
+
+Address cascade (explanatory overlay, not canonical identity):
+
+```text
+S0 may be explained as Q
+S1 may be explained as Σ
+S2 may be explained as L
+S3 may be explained as R
+S4 may be explained as δ
+S5 may be explained as s
+S6 may be explained as t
+S7 may be explained as r
+```
+
+### Register compression (pedagogical pairings)
+
+The 8-tuple may be paired into four pedagogical relation carriers:
+
+```text
+CAR      ≈ Q / Σ    pedagogical pairing, not required integer width
+CDR      ≈ L / R    pedagogical pairing, not required integer width
+PAYLOAD  ≈ δ / s    pedagogical pairing, not required integer width
+MASK     ≈ t / r    pedagogical pairing, not required integer width
+```
+
+Full OMI cell:
+
+```text
+8 × 16-bit address/ruler fields  (S0-S7, pedagogically named by Q Σ L R δ s t r)
++ 4 × 32-bit paired relation fields  (CAR, CDR, PAYLOAD, MASK, pedagogical pairings)
+```
+
+Dotted-pair nesting:
+
+```text
+((Q . Σ)   CAR relation
+ (L . R)   CDR relation
+ (δ . s)   PAYLOAD relation
+ (t . r))  MASK relation
+```
+
+### Null Ring
+
+The folded null seed:
+
+```text
+(NULL . NULL)
+```
+
+Byte ring:
+
+```text
+(0x00 . 0x20)    0x00 ^ 0x20 = 0x20
+(0x20 . 0x7F)    0x20 ^ 0x7F = 0x5F
+(0x7F . 0xFF)    0x7F ^ 0xFF = 0x80
+(0xFF . 0x00)    0xFF ^ 0x00 = 0xFF
+```
+
+Full witness closure:
+
+```text
+0x20 ^ 0x5F ^ 0x80 ^ 0xFF = 0x00
+```
+
+### F-column byte bands
+
+The F-column is a tangential projection from the hidden control row endpoint
+into the printable branch column. It is not arbitrary character selection.
+
+Byte-geometry model:
+
+```text
+linear hidden row:
+  0x00 ... 0x0F (pinch point: low nibble control row end)
+  ...           0x1F (hinge: last hidden unit separator)
+
+tangential printable branch (projecting from 0x1F):
+  0x1F  US    hidden unit separator   (hinge point)
+  0x2F  /     printable separator
+  0x3F  ?     witness / query separator
+  0x4F  O     upper / norm Omicron
+  0x5F  _     carrier / floor separator
+  0x6F  o     lower / local omicron
+
+projective horizon:
+  0x7F        seven-bit gauge endpoint (first deletion/seal boundary)
+  0x80        interpretive space opens
+  0xFF        saturated carrier horizon
+```
+
+Key invariants:
+
+```text
+0x0F pinches the low control nibble.
+0x1F closes the hidden unit row AND is the hinge for the F-column branch.
+0x20 opens readable separation.
+0x1F branches tangentially through US / ? O _ o.
+0x7F closes the seven-bit projective gauge.
+0x80 opens interpretive space.
+0xFF saturates the carrier horizon.
+```
+
+Therefore:
+
+```text
+omi---imo
+  folded root relation
+
+?O_o
+  F-column branch from hidden unit separation into readable witnessed relation
+```
+
+### Agent rules
+
+- Use `omi---imo?O_o` as the current canonical notation surface.
+- Do not infer canonical notation from older nearby files.
+- Do not promote `#/` from carrier compatibility into OMI-native syntax.
+- Do not treat the 8-tuple as `8 × 16-bit` numeric coordinates unless
+  explicitly discussing a later lowering.
+- Do not treat the 8-tuple as canonical structure, authority, or proof object.
+- Do not treat the four dotted pairs as `4 × 32-bit` integer widths.
+- Do not treat geometry drawings as authority.
+- Do not let projection, route, notation, or gauge become authority.
+- Do not use older nearby forms as canonical unless explicitly marked legacy.
+
+Authority order:
+
+```text
+Omnicron frames.
+Tetragrammatron validates.
+Metatron scribes.
+Receipt records.
+```
+
+Short form:
+
+```text
+8-tuple = meaning.
+F-column = notation.
+Null Ring = closure.
+Tetragrammatron = validation.
+Metatron = scribe.
+Receipt = authority.
+```
+
 ## Forbidden Changes
 
 Agents must not:

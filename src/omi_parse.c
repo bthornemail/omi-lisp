@@ -19,7 +19,7 @@
 #include <ctype.h>
 #include <string.h>
 
-/* Maximum recursion depth for nested pairs (trivial for current grammar). */
+/* Maximum recursion depth for nested pairs. */
 #define OMI_PARSE_MAX_DEPTH 16
 
 void omi_parse_arena_init(OMI_ParseArena* arena)
